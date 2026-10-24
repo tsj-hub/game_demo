@@ -1,0 +1,654 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>案件 2 · 监控里的黑影 — 阶段 A</title>
+<script src="../game-state.js"></script>
+<style>
+  :root {
+    --bg: #0a0a0c;
+    --paper: #1a1814;
+    --ink: #d8c9a3;
+    --ink-dim: #8a7e62;
+    --accent: #c8924a;
+    --accent-soft: rgba(200, 146, 74, 0.18);
+    --danger: #b54a3a;
+    --frame: #2a2620;
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body {
+    margin: 0; padding: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: "PingFang SC", "Microsoft YaHei", "Hiragino Sans GB",
+                 "Inter", "Helvetica Neue", Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    min-height: 100vh;
+  }
+
+  .case-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 14px 28px;
+    background: linear-gradient(180deg, #14130f 0%, #0a0a0c 100%);
+    border-bottom: 1px solid var(--frame);
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+
+  .case-bar .title {
+    font-size: 14px;
+    letter-spacing: 0.12em;
+    color: var(--ink-dim);
+    text-transform: uppercase;
+  }
+
+  .case-bar .title strong {
+    color: var(--accent);
+    font-weight: 500;
+    letter-spacing: 0.18em;
+  }
+
+  .case-bar .stage {
+    font-size: 13px;
+    color: var(--ink);
+  }
+
+  .fragments {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+
+  .fragments .label {
+    font-size: 12px;
+    color: var(--ink-dim);
+    margin-right: 6px;
+    letter-spacing: 0.1em;
+  }
+
+  .frag {
+    width: 18px;
+    height: 18px;
+    border: 1px solid var(--ink-dim);
+    transform: rotate(45deg);
+    transition: all 0.4s ease;
+  }
+
+  .frag.found {
+    background: var(--accent);
+    border-color: var(--accent);
+    box-shadow: 0 0 10px var(--accent-soft);
+  }
+
+  .scene {
+    max-width: 1280px;
+    margin: 32px auto;
+    padding: 0 24px;
+  }
+
+  .brief {
+    text-align: center;
+    margin-bottom: 24px;
+    color: var(--ink-dim);
+    font-size: 14px;
+    letter-spacing: 0.08em;
+    line-height: 1.7;
+  }
+
+  .brief em {
+    color: var(--ink);
+    font-style: normal;
+    border-bottom: 1px dashed var(--ink-dim);
+  }
+
+  .monitor {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 2732 / 1534;
+    background: #000;
+    border: 1px solid var(--frame);
+    box-shadow:
+      0 0 0 1px rgba(200, 146, 74, 0.08),
+      0 30px 60px rgba(0, 0, 0, 0.7);
+    overflow: hidden;
+    cursor: crosshair;
+  }
+
+  .monitor img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    filter: contrast(1.02) saturate(0.92);
+  }
+
+  /* 网格蒙版，模拟监控/老胶片质感 */
+  .monitor::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background:
+      repeating-linear-gradient(
+        0deg,
+        rgba(0, 0, 0, 0.18) 0px,
+        rgba(0, 0, 0, 0.18) 2px,
+        transparent 2px,
+        transparent 4px
+      );
+    pointer-events: none;
+    z-index: 2;
+    mix-blend-mode: multiply;
+    opacity: 0.6;
+  }
+
+  .monitor::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(
+      ellipse at center,
+      transparent 50%,
+      rgba(0, 0, 0, 0.55) 100%
+    );
+    pointer-events: none;
+    z-index: 3;
+  }
+
+  .hotspot {
+    position: absolute;
+    z-index: 4;
+    border: 1px dashed transparent;
+    border-radius: 50%;
+    cursor: pointer;
+    transition: all 0.25s ease;
+  }
+
+  .hotspot:hover {
+    border-color: var(--accent);
+    background: var(--accent-soft);
+    box-shadow: 0 0 14px var(--accent-soft);
+  }
+
+  .hotspot::before {
+    content: attr(data-label);
+    position: absolute;
+    bottom: calc(100% + 8px);
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(20, 19, 15, 0.92);
+    color: var(--ink);
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    padding: 4px 10px;
+    white-space: nowrap;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s ease;
+    border: 1px solid var(--frame);
+  }
+
+  .hotspot:hover::before {
+    opacity: 1;
+  }
+
+  .hotspot.found {
+    border-color: var(--accent);
+    background: var(--accent-soft);
+  }
+
+  .hotspot.found::after {
+    content: "✓";
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    color: var(--accent);
+    font-size: 18px;
+    font-weight: 700;
+    text-shadow: 0 0 6px rgba(0,0,0,0.8);
+  }
+
+  /* ===== 笔记弹窗 ===== */
+  .note-mask {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.78);
+    backdrop-filter: blur(4px);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+    padding: 24px;
+  }
+
+  .note-mask.show {
+    display: flex;
+    animation: fadeIn 0.25s ease;
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+  }
+
+  .note {
+    max-width: 460px;
+    background:
+      linear-gradient(180deg, #1f1c16 0%, #16140f 100%);
+    border: 1px solid var(--accent);
+    box-shadow:
+      0 0 0 1px rgba(200, 146, 74, 0.15),
+      0 20px 60px rgba(0, 0, 0, 0.8);
+    padding: 28px 32px 26px;
+    position: relative;
+  }
+
+  .note::before {
+    content: "";
+    position: absolute;
+    top: 10px; left: 10px; right: 10px; bottom: 10px;
+    border: 1px solid rgba(200, 146, 74, 0.18);
+    pointer-events: none;
+  }
+
+  .note .tag {
+    font-size: 11px;
+    letter-spacing: 0.2em;
+    color: var(--accent);
+    margin-bottom: 6px;
+    text-transform: uppercase;
+  }
+
+  .note h3 {
+    margin: 0 0 14px;
+    font-size: 15px;
+    font-weight: 500;
+    color: var(--ink);
+    letter-spacing: 0.05em;
+  }
+
+  .note .body {
+    font-size: 14.5px;
+    line-height: 1.85;
+    color: var(--ink);
+    font-style: italic;
+  }
+
+  .note .body p {
+    margin: 0 0 8px;
+  }
+
+  .note .sign {
+    margin-top: 14px;
+    text-align: right;
+    font-size: 12px;
+    color: var(--ink-dim);
+    letter-spacing: 0.15em;
+  }
+
+  .note .close {
+    margin-top: 18px;
+    text-align: center;
+  }
+
+  .note button {
+    background: transparent;
+    border: 1px solid var(--accent);
+    color: var(--accent);
+    padding: 8px 22px;
+    font-size: 12px;
+    letter-spacing: 0.2em;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+
+  .note button:hover {
+    background: var(--accent);
+    color: #1a1814;
+  }
+
+  /* ===== 总结弹窗 ===== */
+  .summary {
+    max-width: 540px;
+    text-align: left;
+  }
+
+  .summary h2 {
+    margin: 0 0 8px;
+    font-size: 18px;
+    color: var(--accent);
+    letter-spacing: 0.08em;
+    font-weight: 500;
+  }
+
+  .summary .sub {
+    font-size: 12px;
+    color: var(--ink-dim);
+    letter-spacing: 0.15em;
+    margin-bottom: 22px;
+  }
+
+  .summary .verdict {
+    border-top: 1px solid var(--frame);
+    border-bottom: 1px solid var(--frame);
+    padding: 18px 0;
+    margin-bottom: 18px;
+  }
+
+  .summary .verdict .row {
+    display: flex;
+    justify-content: space-between;
+    padding: 4px 0;
+    font-size: 13.5px;
+    color: var(--ink);
+  }
+
+  .summary .verdict .row .k {
+    color: var(--ink-dim);
+    letter-spacing: 0.08em;
+  }
+
+  .summary .verdict .row .v {
+    color: var(--accent);
+    font-weight: 500;
+  }
+
+  .summary .note-final {
+    background: rgba(200, 146, 74, 0.06);
+    border-left: 2px solid var(--accent);
+    padding: 12px 16px;
+    font-style: italic;
+    color: var(--ink);
+    font-size: 14.5px;
+    line-height: 1.8;
+    margin-bottom: 22px;
+  }
+
+  .footer-hint {
+    text-align: center;
+    margin-top: 24px;
+    color: var(--ink-dim);
+    font-size: 12px;
+    letter-spacing: 0.15em;
+  }
+
+  .footer-hint kbd {
+    background: var(--paper);
+    border: 1px solid var(--frame);
+    padding: 2px 8px;
+    color: var(--accent);
+    font-family: inherit;
+    font-size: 11px;
+  }
+</style>
+</head>
+<body data-gs-theme="paper">
+
+  <!-- 点击音效：5处可疑点点击时播放 -->
+  <audio id="clickSfx" src="../点击.mp3" preload="auto"></audio>
+
+  <div class="case-bar">
+    <div class="title">案件 <strong>02</strong> · 穿白衣服的人</div>
+    <div class="stage">阶段 A · 监控里的黑影</div>
+    <div class="fragments">
+      <span class="label">线索碎片</span>
+      <div class="frag" id="f1"></div>
+      <div class="frag" id="f2"></div>
+      <div class="frag" id="f3"></div>
+      <div class="frag" id="f4"></div>
+      <div class="frag" id="f5"></div>
+    </div>
+  </div>
+
+  <div class="scene">
+    <p class="brief">
+      市立第三医院 · 4 号病房走廊 · 监控画面 · 22:14<br>
+      点击画面中 <em>五个可疑细节</em>，提取疑点。
+    </p>
+
+    <div class="monitor" id="monitor">
+      <img src="assets/corridor.jpg" alt="4号病房走廊监控画面" />
+
+      <!-- ① 护士服肩部 -->
+      <div class="hotspot"
+           data-id="shoulder"
+           data-label="① 肩线"
+           style="top: 39.53%; left: 39.26%; width: 12%; height: 10%;"></div>
+
+      <!-- ② 托盘 -->
+      <div class="hotspot"
+           data-id="tray"
+           data-label="② 托盘"
+           style="top: 49.74%; left: 34.44%; width: 12%; height: 10%;"></div>
+
+      <!-- ③ 脚步 -->
+      <div class="hotspot"
+           data-id="footprint"
+           data-label="③ 脚步"
+           style="top: 88.35%; left: 42.36%; width: 16%; height: 10%;"></div>
+
+      <!-- ④ 推车把手 -->
+      <div class="hotspot"
+           data-id="handle"
+           data-label="④ 握姿"
+           style="top: 56.39%; left: 36.17%; width: 10%; height: 10%;"></div>
+
+      <!-- ⑤ 护士帽边缘 -->
+      <div class="hotspot"
+           data-id="cap"
+           data-label="⑤ 帽沿"
+           style="top: 27.70%; left: 41.81%; width: 8%; height: 9%;"></div>
+    </div>
+
+    <p class="footer-hint">
+      提示 · 每个热区可点击一次 · 全部找完后将自动给出推断 &nbsp;·&nbsp;
+      <kbd>ESC</kbd> 关闭笔记
+    </p>
+  </div>
+
+  <!-- 单条笔记弹窗 -->
+  <div class="note-mask" id="noteMask">
+    <div class="note" id="note">
+      <div class="tag" id="noteTag">林深笔记 · 02</div>
+      <h3 id="noteTitle">—</h3>
+      <div class="body" id="noteBody"></div>
+      <div class="sign">—— 林深 · 案 02 现场笔记</div>
+      <div class="close">
+        <button id="noteClose">记 下</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 总结弹窗 -->
+  <div class="note-mask" id="summaryMask">
+    <div class="note summary">
+      <div class="tag">推断完成 · 案件 02 · 阶段 A</div>
+      <h2>他不是“临时起意”</h2>
+      <div class="sub">基于五个监控细节 · 林深推断</div>
+
+      <div class="verdict">
+        <div class="row"><span class="k">伪装专业度</span><span class="v">高（提前演练）</span></div>
+        <div class="row"><span class="k">熟悉程度</span><span class="v">院内人员 / 实习生级</span></div>
+        <div class="row"><span class="k">情绪状态</span><span class="v">冷静 · 无犹豫</span></div>
+        <div class="row"><span class="k">行动路径</span><span class="v">4 号病房 · 直入</span></div>
+      </div>
+
+      <div class="note-final">
+        他把医院当成自己家。<br>
+        每一步都走得很熟悉。<br>
+        ——这不是临时起意。这是<b>回家</b>。
+      </div>
+
+      <div class="close">
+        <button id="summaryClose">进 入 审 讯 阶 段</button>
+      </div>
+    </div>
+  </div>
+
+<script>
+  // ===== 5 条林深笔记 =====
+  // 文案基调：克制、不解释剧情、只写角色的情感反应（2-3 句）
+  const notes = {
+    cap: {
+      title: "帽沿压得太紧",
+      body: [
+        "一次性护士帽，发际线不外露。",
+        "但他压得太紧了——像是要把头发藏起来。",
+        "藏头发的人，通常也在藏自己。"
+      ]
+    },
+    shoulder: {
+      title: "肩线有点不对",
+      body: [
+        "肩部塌了一点，比本院护士的肩要窄。",
+        "可能是借来的小号制服。",
+        "他挑过尺码——这件事，他提前想过。"
+      ]
+    },
+    tray: {
+      title: "托盘上的针管",
+      body: [
+        "器械摆得很整齐，摆放顺序没毛病。",
+        "但有一支针管的套帽还没摘。",
+        "这种细节，新护士不会犯。"
+      ]
+    },
+    handle: {
+      title: "握姿不像护士",
+      body: [
+        "五指并拢包住车把，不是护士常用的四指扣握法。",
+        "握得很稳。",
+        "他推过这辆车——不止一次。"
+      ]
+    },
+    footprint: {
+      title: "步子太稳了",
+      body: [
+        "步幅均匀，没有停顿。",
+        "不是查房时那种小碎步——是大步。",
+        "他走这条路，像走过很多次。"
+      ]
+    }
+  };
+
+  // ===== 点击音效（5 处可疑点）=====
+  const clickSfxEl = document.getElementById('clickSfx');
+  function playClickSfx() {
+    if (!clickSfxEl) return;
+    try { clickSfxEl.currentTime = 0; } catch (e) {}
+    const p = clickSfxEl.play();
+    if (p && typeof p.then === 'function') {
+      p.catch(() => {
+        const onFirst = () => {
+          clickSfxEl.play().catch(() => {});
+          document.removeEventListener('click', onFirst);
+          document.removeEventListener('keydown', onFirst);
+        };
+        document.addEventListener('click', onFirst);
+        document.addEventListener('keydown', onFirst);
+      });
+    }
+  }
+  let clickSfxUnlocked = false;
+  function unlockClickSfx() {
+    if (clickSfxUnlocked || !clickSfxEl) return;
+    clickSfxUnlocked = true;
+    const wasPaused = clickSfxEl.paused;
+    const p = clickSfxEl.play();
+    if (p && typeof p.then === 'function') {
+      p.then(() => {
+        if (wasPaused) {
+          try { clickSfxEl.pause(); } catch (e) {}
+          try { clickSfxEl.currentTime = 0; } catch (e) {}
+        }
+      }).catch(() => {});
+    }
+  }
+  document.addEventListener('click', unlockClickSfx, { once: true });
+  document.addEventListener('keydown', unlockClickSfx, { once: true });
+
+  const fragCount = 5;
+  let found = new Set();
+  const total = Object.keys(notes).length;
+
+  const noteMask   = document.getElementById('noteMask');
+  const noteTag    = document.getElementById('noteTag');
+  const noteTitle  = document.getElementById('noteTitle');
+  const noteBody   = document.getElementById('noteBody');
+  const noteClose  = document.getElementById('noteClose');
+  const summaryMask = document.getElementById('summaryMask');
+  const summaryClose = document.getElementById('summaryClose');
+
+  document.querySelectorAll('.hotspot').forEach(hs => {
+    hs.addEventListener('click', () => {
+      const id = hs.dataset.id;
+      if (found.has(id)) return;
+      playClickSfx();
+      found.add(id);
+      hs.classList.add('found');
+
+      // 碎片进度
+      const fragEl = document.getElementById('f' + found.size);
+      if (fragEl) fragEl.classList.add('found');
+
+      // 弹笔记
+      const n = notes[id];
+      noteTag.textContent = `林深笔记 · 02 · 0${found.size}`;
+      noteTitle.textContent = n.title;
+      noteBody.innerHTML = n.body.map(p => `<p>${p}</p>`).join('');
+      noteMask.classList.add('show');
+
+      // === GameState 集成：5 个热区全部找完 → 获得证据 ===
+      if (found.size === total && window.GameState) {
+        GameState.addEvidence('monitor-shots');
+        GameState.setScore('level2Monitor', 1);
+      }
+    });
+  });
+
+  noteClose.addEventListener('click', () => {
+    noteMask.classList.remove('show');
+    if (found.size === total) {
+      setTimeout(() => summaryMask.classList.add('show'), 280);
+    }
+  });
+
+  summaryClose.addEventListener('click', () => {
+    summaryMask.classList.remove('show');
+    // === GameState 集成：进入医院现场 ===
+    if (window.GameState) {
+      setTimeout(() => GameState.next(), 300);
+    }
+  });
+
+  // === GameState 初始化 ===
+  if (window.GameState) {
+    GameState.setCurrentScene('level2-monitor');
+    GameState.injectEvidencePanel({ theme: 'paper' });
+  }
+
+  // ESC 关闭任意弹窗
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') {
+      noteMask.classList.remove('show');
+      summaryMask.classList.remove('show');
+    }
+  });
+
+  // 点击遮罩关闭
+  noteMask.addEventListener('click', e => {
+    if (e.target === noteMask) noteMask.classList.remove('show');
+  });
+  summaryMask.addEventListener('click', e => {
+    if (e.target === summaryMask) summaryMask.classList.remove('show');
+  });
+</script>
+</body>
+</html>

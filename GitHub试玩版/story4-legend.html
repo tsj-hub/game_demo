@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>剧情 4 · 传说揭示</title>
+<style>
+  :root {
+    --bg: #0a0a0c;
+    --paper: #1a1814;
+    --ink: #d8c9a3;
+    --ink-dim: #8a7e62;
+    --accent: #c8924a;
+    --accent-soft: rgba(200, 146, 74, 0.18);
+    --danger: #b54a3a;
+    --frame: #2a2620;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  html, body {
+    width: 100%; height: 100%;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: "PingFang SC", "Microsoft YaHei", sans-serif;
+    overflow: hidden;
+    user-select: none;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .case-bar {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 14px 28px;
+    background: linear-gradient(180deg, #14130f 0%, #0a0a0c 100%);
+    border-bottom: 1px solid var(--frame);
+    position: sticky; top: 0; z-index: 10;
+  }
+  .case-bar .title { font-size: 14px; letter-spacing: 0.12em; color: var(--ink-dim); }
+  .case-bar .title strong { color: var(--accent); font-weight: 500; letter-spacing: 0.18em; }
+  .case-bar .stage { font-size: 13px; color: var(--ink); }
+
+  /* 整页背景：传说背景图 */
+  body::before {
+    content: "";
+    position: fixed; inset: 0;
+    background-image: url("素材/素材/传说背景图.webp");
+    background-size: cover;
+    background-position: center;
+    opacity: 0.22;
+    filter: grayscale(30%) blur(0.5px);
+    pointer-events: none;
+    z-index: 0;
+  }
+  .case-bar, .stage-wrap { position: relative; z-index: 1; }
+
+  .stage-wrap {
+    width: 100%; height: calc(100vh - 56px);
+    position: relative;
+    overflow-y: auto;
+    overflow-x: hidden;
+    display: flex; flex-direction: column; align-items: center;
+    padding: 24px 24px 48px;
+  }
+
+  /* 叙述区 */
+  .narrative {
+    width: 100%; max-width: 820px;
+    text-align: center;
+    margin-bottom: 22px;
+  }
+  .narrative .kicker {
+    font-size: 11px; letter-spacing: 0.3em;
+    color: var(--accent); margin-bottom: 10px;
+    text-transform: uppercase;
+  }
+  .narrative h1 {
+    font-size: 22px; font-weight: 400;
+    color: var(--ink); letter-spacing: 0.1em;
+    margin-bottom: 16px;
+  }
+  .narrative p {
+    font-size: 14.5px; line-height: 1.95;
+    color: var(--ink-dim);
+    max-width: 640px; margin: 0 auto;
+  }
+  .narrative p em {
+    color: var(--accent);
+    font-style: normal;
+    border-bottom: 1px dashed var(--accent);
+  }
+
+  /* 视频区 */
+  .video-frame {
+    width: 100%; max-width: 900px;
+    position: relative;
+    background: #000;
+    border: 1px solid var(--frame);
+    box-shadow: 0 20px 50px rgba(0,0,0,0.7), 0 0 30px rgba(200, 146, 74, 0.08);
+  }
+  .video-frame::before {
+    content: "";
+    position: absolute;
+    inset: -1px;
+    border: 1px solid rgba(200, 146, 74, 0.25);
+    pointer-events: none;
+    z-index: 2;
+  }
+  .video-frame video {
+    display: block;
+    width: 100%;
+    max-height: 70vh;
+    background: #000;
+  }
+  .video-caption {
+    position: absolute;
+    bottom: 8px; left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0,0,0,0.6);
+    color: var(--ink-dim);
+    font-size: 11px;
+    letter-spacing: 0.2em;
+    padding: 4px 14px;
+    border: 1px solid var(--frame);
+    z-index: 3;
+    pointer-events: none;
+  }
+
+  /* 揭示区（看完视频后显示） */
+  .reveal {
+    width: 100%; max-width: 820px;
+    margin-top: 28px;
+    opacity: 0;
+    transform: translateY(20px);
+    transition: opacity 0.8s ease, transform 0.8s ease;
+    pointer-events: none;
+  }
+  .reveal.show {
+    opacity: 1;
+    transform: translateY(0);
+    pointer-events: auto;
+  }
+  .reveal .legend-paper {
+    background: linear-gradient(180deg, #f4eed8 0%, #e8dfc4 100%);
+    color: #1a1a1a;
+    padding: 30px 38px;
+    border: 1px solid #888;
+    box-shadow: 0 12px 30px rgba(0,0,0,0.5), inset 0 0 40px rgba(160, 130, 80, 0.1);
+    position: relative;
+    font-family: "KaiTi", "STKaiti", cursive;
+  }
+  .legend-paper::before, .legend-paper::after {
+    content: "";
+    position: absolute;
+    top: 10px; left: 10px; right: 10px; bottom: 10px;
+    border: 1px solid rgba(120, 80, 40, 0.25);
+    pointer-events: none;
+  }
+  .legend-paper h2 {
+    text-align: center;
+    font-size: 19px; font-weight: 600;
+    color: #5a3a20;
+    letter-spacing: 0.2em;
+    margin-bottom: 4px;
+  }
+  .legend-paper .sub {
+    text-align: center;
+    font-size: 11px;
+    color: #8a6840;
+    letter-spacing: 0.3em;
+    margin-bottom: 22px;
+    font-family: "PingFang SC", "Microsoft YaHei", sans-serif;
+  }
+  .legend-paper .body {
+    font-size: 15px;
+    line-height: 2.1;
+    text-indent: 2em;
+  }
+  .legend-paper .body p { margin-bottom: 10px; }
+  .legend-paper .body .key {
+    color: #8b0000;
+    font-weight: bold;
+  }
+  .legend-paper .seal {
+    text-align: right;
+    margin-top: 18px;
+    font-size: 12px;
+    color: #8b0000;
+    font-family: "PingFang SC", "Microsoft YaHei", sans-serif;
+    letter-spacing: 0.1em;
+  }
+
+  .lin-reflection {
+    margin-top: 22px;
+    background: rgba(200, 146, 74, 0.06);
+    border-left: 2px solid var(--accent);
+    padding: 16px 20px;
+    font-style: italic;
+    color: var(--ink);
+    font-size: 14.5px;
+    line-height: 1.95;
+  }
+  .lin-reflection .who {
+    display: block;
+    font-style: normal;
+    font-size: 11px;
+    color: var(--accent);
+    letter-spacing: 0.25em;
+    margin-bottom: 6px;
+  }
+
+  .next-row {
+    margin-top: 28px;
+    text-align: center;
+  }
+  .next-row button {
+    background: transparent;
+    border: 1px solid var(--accent);
+    color: var(--accent);
+    padding: 12px 32px;
+    font-size: 13px;
+    letter-spacing: 0.3em;
+    cursor: pointer;
+    font-family: inherit;
+    transition: all 0.25s;
+  }
+  .next-row button:hover {
+    background: var(--accent); color: #1a1814;
+    box-shadow: 0 0 20px var(--accent-soft);
+  }
+  .next-row button:disabled {
+    border-color: var(--ink-dim);
+    color: var(--ink-dim);
+    cursor: not-allowed;
+    background: transparent;
+    box-shadow: none;
+  }
+
+  /* 视频未结束时的小提示 */
+  .watch-hint {
+    margin-top: 14px;
+    font-size: 12px;
+    color: var(--ink-dim);
+    letter-spacing: 0.15em;
+    text-align: center;
+  }
+  .watch-hint.em {
+    color: var(--accent);
+  }
+
+  @media (max-width: 768px) {
+    .case-bar { padding: 10px 16px; }
+    .case-bar .title { font-size: 12px; }
+    .stage-wrap { padding: 16px 14px 32px; }
+    .narrative h1 { font-size: 18px; }
+    .narrative p { font-size: 13px; }
+    .legend-paper { padding: 22px 18px; }
+    .legend-paper .body { font-size: 14px; }
+  }
+</style>
+</head>
+<body data-gs-theme="paper">
+  <div class="case-bar">
+    <div class="title">案件 <strong>02</strong> · 穿白衣服的人</div>
+    <div class="stage">传 说</div>
+  </div>
+
+  <div class="stage-wrap">
+    <div class="narrative">
+      <div class="kicker">审讯之后 · 真相之钥</div>
+      <h1>《复仇者与诗人的赌约》</h1>
+      <p>
+        赵医生交代，张荣所做的一切，<em>都按着一个传说在走</em>。<br>
+        那是希腊神话里被抹掉的一章——<em>NEMESIS 与 ORPHEUS 的赌约</em>。<br>
+        档案室深处有一卷老录像带，林深把它放了出来。
+      </p>
+    </div>
+
+    <div class="video-frame">
+      <video id="legendVideo" controls preload="auto" playsinline autoplay>
+        <source src="传说视频.mp4" type="video/mp4">
+        您的浏览器不支持视频播放。
+      </video>
+      <div class="video-caption">档 案 · 复 仇 者 传 说</div>
+    </div>
+
+    <div class="watch-hint" id="watchHint">▶  请完整观看录像，揭示内容将在结束后出现
+      <span id="unmuteHint" style="display:inline-block;margin-left:14px;color:#c8924a;cursor:pointer;border:1px solid rgba(200,146,74,0.4);padding:3px 10px;font-size:12px;border-radius:3px;letter-spacing:0.08em;">🔇 当前静音播放 · 点击开启声音</span>
+    </div>
+
+    <div class="reveal" id="reveal">
+      <div class="legend-paper">
+        <h2>复 仇 者 与 诗 人 的 赌 约</h2>
+        <div class="sub">古希腊 · 佚名 · 残卷三则</div>
+        <div class="body">
+          <p><b>【序章】</b></p>
+          <p>在古希腊的土地上，曾流传着一个古老的传说，在冥界的入口处，复仇女神 NEMESIS 遇见了一个诗人，名叫 ORPHEUS。</p>
+          <p>他来冥界，是为了带走一个人——他的妻子。</p>
+          <p>NEMESIS 拦住他的去路，提出了一个赌约：</p>
+          <p>"<span class="key">三局为限。你若赢我，她跟你走。你若输我，你留下，代替她。</span>"</p>
+          <p>诗人接受了。</p>
+
+          <p><b>【第一局：藏匿与发现】</b></p>
+          <p>NEMESIS 说：</p>
+          <p>"我藏一件东西在冥界。你来找。找到了，你赢。"</p>
+          <p>她藏的是什么，没有人知道。</p>
+          <p>据说他找了整整一年。他走过冥界的每一条河，翻过每一座灰烬之山。</p>
+          <p>有人说他找到了，有人说他没有。</p>
+          <p>但按照规则，如果找不到，就是输。</p>
+          <p>传说中说，他找到了。</p>
+          <p>——<span class="key">第一局，ORPHEUS 胜。比分 1:0。</span></p>
+
+          <p><b>【第二局：伪装与识破】</b></p>
+          <p>ORPHEUS 说：</p>
+          <p>"我化装为一个凡人，走回人间。如果你能认出我，你赢。"</p>
+          <p>他离开了冥界，回到了阳光之下。</p>
+          <p>NEMESIS 跟了上去。</p>
+          <p>据说她在人群中走了很久，见过卖花的少女、饮酒的老人、哭泣的母亲、大笑的孩子。</p>
+          <p>最后她从中认出了他。</p>
+          <p>——<span class="key">第二局，NEMESIS 胜。比分 1:1。</span></p>
+
+          <p><b>【第三局：胜者的抉择】</b></p>
+          <p>按照约定，前两局各胜一局，则由第一局的胜者——也就是 ORPHEUS——来裁定第三局的规则。</p>
+          <p>传说中，没有人知道第三局的规则是什么。</p>
+          <p>只知道最后的结局是：</p>
+          <p>ORPHEUS 没有带走他的妻子，他留在了冥界。</p>
+          <p>NEMESIS 也从此消失在所有传说中。</p>
+        </div>
+        <div class="seal">—— 残卷终 · 馆藏编号 NEM-Ⅲ</div>
+      </div>
+
+      <div class="lin-reflection">
+        <span class="who">— 林深笔记</span>
+        "第三局的规则由第一局的胜者定，NEMESIS 赢了第一局。所以第三局怎么玩，他说了算。这两个人在做的事，和那个传说一模一样——三局两胜。他们把传说变成了现实，而代价是两条命。"
+      </div>
+
+      <div class="next-row">
+        <button id="nextBtn">进 入 终 局 追 捕</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 进入终局追捕按钮音效 -->
+  <audio id="zhongjuSfx" src="终局.mp3" preload="auto"></audio>
+
+<script src="game-state.js"></script>
+<script>
+(() => {
+  'use strict';
+  const GameState = window.GameState;
+  GameState.setCurrentScene('story4-legend');
+  GameState.injectEvidencePanel({ theme: 'paper' });
+
+  const video = document.getElementById('legendVideo');
+  const reveal = document.getElementById('reveal');
+  const zhongjuSfx = document.getElementById('zhongjuSfx');
+
+  // ===== 进入终局追捕按钮音效：终局.mp3 =====
+  function playZhongjuSfx() {
+    if (!zhongjuSfx) return;
+    try { zhongjuSfx.currentTime = 0; } catch (e) {}
+    const p = zhongjuSfx.play();
+    if (p && typeof p.then === 'function') {
+      p.catch(() => {
+        const onUser = () => {
+          try { zhongjuSfx.play(); } catch (e) {}
+          document.removeEventListener('click', onUser);
+          document.removeEventListener('keydown', onUser);
+        };
+        document.addEventListener('click', onUser);
+        document.addEventListener('keydown', onUser);
+      });
+    }
+  }
+  // 首次交互解锁（和全局 BGM 解锁逻辑同形）
+  (function unlockZhongjuSfx() {
+    if (!zhongjuSfx) return;
+    const onFirst = () => {
+      const q = zhongjuSfx.play();
+      if (q && typeof q.then === 'function') {
+        q.then(() => { try { zhongjuSfx.pause(); zhongjuSfx.currentTime = 0; } catch (e) {} }).catch(() => {});
+      }
+      document.removeEventListener('click', onFirst);
+      document.removeEventListener('keydown', onFirst);
+    };
+    document.addEventListener('click', onFirst);
+    document.addEventListener('keydown', onFirst);
+  })();
+  const hint = document.getElementById('watchHint');
+  const nextBtn = document.getElementById('nextBtn');
+  const unmuteHint = document.getElementById('unmuteHint');
+  let revealed = false;
+
+  // ===== 页面加载后自动播放视频 =====
+  // 先尝试带声音直接播放；如果浏览器拦截自动播放，就静音播放，
+  // 并显示"🔇 当前静音播放 · 点击开启声音"的提示按钮，用户点击后恢复声音。
+  function tryPlay(withSound) {
+    if (!video) return Promise.reject();
+    video.muted = !withSound;
+    const p = video.play();
+    if (!p || typeof p.then !== 'function') return Promise.resolve();
+    return p;
+  }
+  function showUnmuteHint() {
+    if (!unmuteHint) return;
+    unmuteHint.style.display = 'inline-block';
+  }
+  function hideUnmuteHint() {
+    if (!unmuteHint) return;
+    unmuteHint.style.display = 'none';
+  }
+  // 默认隐藏提示，只有带声播放被拦截才显示
+  hideUnmuteHint();
+  function bootstrapAutoplay() {
+    tryPlay(true).then(() => {
+      // 带声音成功 → 不显示静音提示
+      hideUnmuteHint();
+    }).catch(() => {
+      // 浏览器拦截带声自动播放 → 改用静音播放
+      tryPlay(false).then(() => {
+        showUnmuteHint();
+      }).catch(() => {
+        // 极端情况：连静音都不让播（极少发生）。等用户首次点击再启动
+        const onFirst = () => {
+          tryPlay(false).then(() => showUnmuteHint()).catch(() => {});
+          document.removeEventListener('click', onFirst);
+          document.removeEventListener('keydown', onFirst);
+        };
+        document.addEventListener('click', onFirst);
+        document.addEventListener('keydown', onFirst);
+      });
+    });
+  }
+  if (document.readyState === 'complete' || document.readyState === 'interactive') {
+    setTimeout(bootstrapAutoplay, 0);
+  } else {
+    window.addEventListener('DOMContentLoaded', bootstrapAutoplay);
+  }
+
+  // 用户点击"开启声音"提示：恢复音量
+  if (unmuteHint) {
+    unmuteHint.addEventListener('click', (e) => {
+      e.stopPropagation();
+      video.muted = false;
+      video.volume = 1;
+      try { video.play(); } catch (err) {}
+      hideUnmuteHint();
+    });
+  }
+
+  function revealLegend() {
+    if (revealed) return;
+    revealed = true;
+    reveal.classList.add('show');
+    hint.textContent = '✓  录像已查阅 · 完整传说已加入证据';
+    hint.classList.add('em');
+    // 把"完整传说"加入证据
+    GameState.addEvidence('full-legend');
+  }
+
+  // 视频结束后揭示
+  video.addEventListener('ended', revealLegend);
+
+  // 兼容：用户没看完就跳过（视频播放过半也算）
+  video.addEventListener('timeupdate', () => {
+    if (!revealed && video.duration && (video.currentTime / video.duration) > 0.85) {
+      revealLegend();
+    }
+  });
+
+  // 兜底：如果视频加载失败，5 秒后允许手动揭示
+  video.addEventListener('error', () => {
+    hint.textContent = '⚠  录像加载失败 · 点击此处手动揭示';
+    hint.classList.add('em');
+    hint.style.cursor = 'pointer';
+    hint.addEventListener('click', revealLegend, { once: true });
+  });
+
+  nextBtn.addEventListener('click', () => {
+    if (!revealed) return;
+    playZhongjuSfx();
+    setTimeout(() => GameState.next(), 200);
+  });
+
+  // 兜底快捷键：Esc 静音；Space 播放/暂停
+  document.addEventListener('keydown', e => {
+    if (e.key === ' ' && document.activeElement !== video) {
+      e.preventDefault();
+      if (video.paused) video.play(); else video.pause();
+    }
+  });
+})();
+</script>
+</body>
+</html>

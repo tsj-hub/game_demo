@@ -1,0 +1,1455 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>审讯质证 - 阶段B</title>
+    <script src="../game-state.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Microsoft YaHei', 'SimSun', sans-serif;
+            background: #1a1a1a;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+        }
+
+        #game-container {
+            width: 1200px;
+            height: 800px;
+            position: relative;
+            background: #1a1a1a;
+            border-radius: 5px;
+            overflow: hidden;
+            box-shadow: 0 0 40px rgba(0, 0, 0, 0.9);
+            border: 1px solid #333;
+        }
+
+        #background {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            z-index: 1;
+            opacity: 0.25;
+            filter: grayscale(40%) sepia(20%);
+        }
+
+        #character-stand {
+            position: absolute;
+            left: 10px;
+            bottom: 0;
+            width: 520px;
+            height: 720px;
+            z-index: 2;
+        }
+
+        #character-image {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: flex-end;
+            justify-content: center;
+            font-size: 32px;
+            font-weight: bold;
+            color: #2c2c2c;
+            text-shadow: 1px 1px 2px rgba(255, 255, 255, 0.3);
+            background: transparent;
+            border-radius: 0;
+            border: none;
+            overflow: hidden;
+        }
+
+        #character-image img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            object-position: bottom;
+        }
+
+        #goal-display {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: #e8e4d9;
+            border: 1px solid #1a1a1a;
+            padding: 8px 14px;
+            font-size: 13px;
+            color: #1a1a1a;
+            z-index: 4;
+            box-shadow: 2px 2px 0 rgba(0,0,0,0.3);
+            transform: rotate(-1deg);
+            letter-spacing: 1px;
+            font-family: 'KaiTi', 'SimSun', serif;
+        }
+
+        #goal-display::before {
+            content: '【目标】';
+            color: #8b0000;
+            font-weight: bold;
+            margin-right: 5px;
+        }
+
+        #dialogue-area {
+            position: absolute;
+            bottom: 0;
+            right: 0;
+            width: 800px;
+            height: 250px;
+            background: #e8e4d9;
+            border: 2px solid #d1cdc0;
+            border-radius: 0;
+            padding: 25px;
+            z-index: 3;
+            box-shadow: inset 0 0 30px rgba(199, 194, 181, 0.5);
+            position: absolute;
+        }
+
+        #dialogue-area::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: 
+                radial-gradient(ellipse at 90% 80%, rgba(139, 0, 0, 0.08) 0%, transparent 25%),
+                radial-gradient(ellipse at 10% 90%, rgba(199, 194, 181, 0.3) 0%, transparent 20%);
+            pointer-events: none;
+            z-index: -1;
+        }
+
+        #dialogue-area::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: repeating-linear-gradient(90deg, #a00000 0, #a00000 8px, transparent 8px, transparent 16px);
+            opacity: 0.15;
+            pointer-events: none;
+        }
+
+        #character-name {
+            font-size: 22px;
+            font-weight: bold;
+            color: #1a1a1a;
+            margin-bottom: 10px;
+            padding: 4px 12px;
+            background: #fff;
+            border: 1px solid #333;
+            display: inline-block;
+        }
+
+        #dialogue-text {
+            font-size: 20px;
+            line-height: 1.6;
+            margin-bottom: 20px;
+            min-height: 80px;
+            position: relative;
+            z-index: 1;
+        }
+
+        #dialogue-text .normal-text {
+            color: #2c2c2c;
+        }
+
+        #dialogue-text .os-text {
+            color: #8b0000;
+            font-style: italic;
+            font-family: 'KaiTi', 'SimSun', serif;
+        }
+
+        #evidence-container {
+            position: absolute;
+            top: 50px;
+            right: 50px;
+            width: 350px;
+            height: 450px;
+            background: #e8e4d9;
+            border: 2px solid #d1cdc0;
+            border-radius: 0;
+            padding: 20px;
+            z-index: 3;
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.5), inset 0 0 20px rgba(199, 194, 181, 0.4);
+        }
+
+        #evidence-container::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: radial-gradient(ellipse at 80% 90%, rgba(139, 0, 0, 0.06) 0%, transparent 30%);
+            pointer-events: none;
+        }
+
+        #submit-btn {
+            width: 100%;
+            background: #2c2c2c;
+            border: 2px solid #555;
+            border-radius: 0;
+            padding: 12px;
+            font-size: 18px;
+            font-weight: bold;
+            color: #e8e4d9;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 15px;
+            display: none;
+            letter-spacing: 2px;
+        }
+
+        #submit-btn:hover {
+            background: #8b0000;
+            border-color: #8b0000;
+            transform: scale(1.02);
+        }
+
+        #submit-btn.active {
+            display: block;
+        }
+
+        #submit-btn.disabled {
+            background: #555;
+            border-color: #444;
+            cursor: not-allowed;
+            opacity: 0.5;
+            color: #888;
+        }
+
+        #evidence-title {
+            font-size: 18px;
+            font-weight: bold;
+            color: #1a1a1a;
+            margin-bottom: 15px;
+            text-align: center;
+            padding-bottom: 8px;
+            border-bottom: 2px solid #a00000;
+        }
+
+        #evidence-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        #evidence-list::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        #evidence-list::-webkit-scrollbar-track {
+            background: #d1cdc0;
+        }
+
+        #evidence-list::-webkit-scrollbar-thumb {
+            background: #555;
+        }
+
+        .evidence-item {
+            background: #d1cdc0;
+            border: 1px solid #888;
+            border-radius: 0;
+            padding: 12px;
+            font-size: 16px;
+            color: #2c2c2c;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .evidence-item:hover {
+            background: #c7c2b5;
+            border-color: #333;
+            transform: translateX(5px);
+        }
+
+        .evidence-item.selected {
+            background: #8b0000;
+            border-color: #1a1a1a;
+            color: #e8e4d9;
+        }
+
+        #progress {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            font-size: 18px;
+            color: #e8e4d9;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
+        }
+
+        #game-over {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(26, 26, 26, 0.97);
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+        }
+
+        #game-over.show {
+            display: flex;
+        }
+
+        #game-over h1 {
+            font-size: 64px;
+            margin-bottom: 30px;
+            text-shadow: 0 0 20px rgba(139, 0, 0, 0.5);
+        }
+
+        #game-over h1.success {
+            color: #e8e4d9;
+        }
+
+        #game-over h1.failure {
+            color: #8b0000;
+        }
+
+        #game-over p {
+            font-size: 22px;
+            color: #c7c2b5;
+            margin-bottom: 20px;
+            text-align: center;
+            max-width: 800px;
+            line-height: 1.6;
+        }
+
+        #game-over .restart-btn {
+            background: #2c2c2c;
+            border: 2px solid #555;
+            border-radius: 0;
+            padding: 15px 50px;
+            font-size: 24px;
+            color: #e8e4d9;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 40px;
+            letter-spacing: 2px;
+        }
+
+        #game-over .restart-btn:hover {
+            background: #8b0000;
+            border-color: #8b0000;
+            transform: scale(1.05);
+        }
+
+        #start-screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(26, 26, 26, 0.97);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+        }
+
+        #start-screen.hidden {
+            display: none;
+        }
+
+        #start-screen h1 {
+            font-size: 56px;
+            color: #e8e4d9;
+            margin-bottom: 40px;
+            text-shadow: 0 0 20px rgba(139, 0, 0, 0.4);
+            text-align: center;
+            letter-spacing: 4px;
+        }
+
+        #start-screen p {
+            font-size: 22px;
+            color: #c7c2b5;
+            margin-bottom: 60px;
+            text-align: center;
+            line-height: 1.8;
+            max-width: 800px;
+        }
+
+        #start-btn {
+            background: #2c2c2c;
+            border: 2px solid #555;
+            border-radius: 0;
+            padding: 20px 80px;
+            font-size: 30px;
+            color: #e8e4d9;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            letter-spacing: 4px;
+        }
+
+        #start-btn:hover {
+            background: #8b0000;
+            border-color: #8b0000;
+            transform: scale(1.05);
+        }
+
+        #help-btn {
+            background: transparent;
+            border: 1px solid #555;
+            border-radius: 0;
+            padding: 12px 40px;
+            font-size: 22px;
+            color: #c7c2b5;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-bottom: 20px;
+            letter-spacing: 2px;
+        }
+
+        #help-btn:hover {
+            background: #2c2c2c;
+            border-color: #8b0000;
+            color: #e8e4d9;
+        }
+
+        #help-screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(26, 26, 26, 0.98);
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 101;
+            overflow-y: auto;
+        }
+
+        #help-screen.show {
+            display: flex;
+        }
+
+        #help-screen h1 {
+            font-size: 44px;
+            color: #e8e4d9;
+            margin-bottom: 30px;
+            text-shadow: 0 0 15px rgba(139, 0, 0, 0.4);
+            letter-spacing: 3px;
+        }
+
+        .help-content {
+            max-width: 900px;
+            padding: 20px;
+        }
+
+        .help-section {
+            background: #e8e4d9;
+            border-radius: 0;
+            padding: 25px;
+            margin-bottom: 20px;
+            border: 1px solid #d1cdc0;
+            box-shadow: inset 0 0 20px rgba(199, 194, 181, 0.4);
+        }
+
+        .help-section h2 {
+            font-size: 26px;
+            color: #1a1a1a;
+            margin-bottom: 15px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid #a00000;
+        }
+
+        .help-section p {
+            font-size: 20px;
+            color: #2c2c2c;
+            line-height: 1.6;
+        }
+
+        .help-section ul {
+            list-style: none;
+            padding: 0;
+        }
+
+        .help-section li {
+            font-size: 18px;
+            color: #2c2c2c;
+            margin-bottom: 10px;
+            padding-left: 25px;
+            position: relative;
+        }
+
+        .help-section li::before {
+            content: "▶";
+            position: absolute;
+            left: 0;
+            color: #8b0000;
+            font-size: 14px;
+        }
+
+        #back-btn {
+            background: #2c2c2c;
+            border: 2px solid #555;
+            border-radius: 0;
+            padding: 15px 60px;
+            font-size: 22px;
+            color: #e8e4d9;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 30px;
+            letter-spacing: 2px;
+        }
+
+        #back-btn:hover {
+            background: #8b0000;
+            border-color: #8b0000;
+            transform: scale(1.05);
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
+        }
+
+        .pulse {
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            75% { transform: translateX(5px); }
+        }
+
+        .shake {
+            animation: shake 0.5s ease-in-out;
+        }
+
+        @keyframes shoot {
+            0% { transform: scale(1); opacity: 1; }
+            100% { transform: scale(0.5); opacity: 0; }
+        }
+
+        .shoot {
+            animation: shoot 0.3s ease-out;
+        }
+
+        @keyframes success {
+            0% { transform: scale(1); opacity: 0; }
+            50% { transform: scale(1.2); opacity: 1; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        .success {
+            animation: success 0.5s ease-out;
+            background: rgba(139, 0, 0, 0.15);
+            border: 2px solid #8b0000;
+            color: #8b0000;
+            font-weight: bold;
+            padding: 10px;
+            border-radius: 0;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <!-- 提交证据环节音乐：矛盾点对话出现时播放，提交后立刻停止 -->
+    <audio id="submitEvidenceMusic" src="../提交证据.MP3" preload="auto"></audio>
+    <!-- 提交正确/错误音效：点提交按钮时根据结果播放 -->
+    <audio id="evidenceCorrectSfx" src="../证据正确.MP3" preload="auto"></audio>
+    <audio id="evidenceWrongSfx" src="../证据错误.mp3" preload="auto"></audio>
+    <div id="game-container">
+        <img id="background" src="审讯室.webp" alt="背景">
+        
+        <div id="goal-display"></div>
+        
+        <div id="character-stand">
+            <div id="character-image"></div>
+        </div>
+        
+        <div id="dialogue-area">
+            <div id="character-name">系统旁白</div>
+            <div id="dialogue-text">欢迎来到4号病房的死亡审判...</div>
+        </div>
+        
+        <div id="evidence-container">
+            <div id="evidence-title">证据清单</div>
+            <div id="evidence-list"></div>
+            <button id="submit-btn">提交证据</button>
+        </div>
+        
+        <div id="game-over">
+            <h1 id="result-title"></h1>
+            <p id="result-text"></p>
+            <p id="ending-story"></p>
+            <button class="restart-btn">下一步</button>
+        </div>
+        
+        <div id="start-screen">
+            <h1>阶段B：审讯赵医生</h1>
+            <p>
+                你是刑警林深，正在审讯市立第三医院的赵医生。<br>
+                4月3日晚发生的案件背后，隐藏着一个关于复仇的秘密。<br>
+                你需要通过提交证据来打破赵医生的心理防线，揭开NEMESIS赌约的真相。<br><br>
+                真相，即将浮出水面！
+            </p>
+            <button id="help-btn">游戏操作指引</button>
+            <button id="start-btn">开始审讯</button>
+        </div>
+        
+        <div id="help-screen">
+            <h1>游戏操作指引</h1>
+            <div class="help-content">
+                <div class="help-section">
+                    <h2>🎯 游戏目标</h2>
+                    <p>在审讯过程中，你需要找出赵医生发言中的矛盾点，提交正确的证据进行反驳，打破他的心理防线，揭开NEMESIS赌约的真相。</p>
+                </div>
+                <div class="help-section">
+                    <h2>📝 界面说明</h2>
+                    <ul>
+                        <li><strong>左侧</strong>：显示当前发言角色的立绘</li>
+                        <li><strong>右下角</strong>：显示角色的对话内容</li>
+                        <li><strong>右侧上方</strong>：证据清单，显示你拥有的所有证据</li>
+                        <li><strong>提交证据按钮</strong>：当选中证据后可点击提交进行反驳</li>
+                    </ul>
+                </div>
+                <div class="help-section">
+                    <h2>🎮 操作方式</h2>
+                    <ul>
+                        <li><strong>点击证据</strong>：从证据清单中选择一个证据</li>
+                        <li><strong>点击提交按钮</strong>：使用选中的证据进行反驳</li>
+                        <li><strong>点击对话区域</strong>：进入下一句对话</li>
+                    </ul>
+                </div>
+                <div class="help-section">
+                    <h2>💡 游戏提示</h2>
+                    <ul>
+                        <li>仔细阅读每个角色的发言，寻找不合理的地方</li>
+                        <li>选择正确的证据才能成功反驳</li>
+                        <li>注意观察案件中的关键证据和时间线</li>
+                        <li>当对话存在矛盾点时，提交按钮会显示出来</li>
+                    </ul>
+                </div>
+            </div>
+            <button id="back-btn">返回</button>
+        </div>
+    </div>
+
+    <script>
+        const characterSprites = {
+            '林深': '林深.webp',
+            '赵医生': '赵医生.webp'
+        };
+
+        const trialData = [
+            {
+                character: "林深",
+                dialogue: "赵医生，4月3日晚上10点前后，你在哪里？",
+                weakPoints: [],
+                next: 1
+            },
+            {
+                character: "赵医生",
+                dialogue: "办公室，我正在写病历。",
+                weakPoints: [],
+                next: 2
+            },
+            {
+                character: "林深",
+                dialogue: "那间办公室能看到4号病房的走廊吗？",
+                weakPoints: [],
+                next: 3
+            },
+            {
+                character: "赵医生",
+                dialogue: "……能。",
+                weakPoints: [],
+                next: 4
+            },
+            {
+                character: "林深",
+                dialogue: "那晚有没有人经过？",
+                weakPoints: [],
+                next: 5
+            },
+            {
+                character: "赵医生",
+                dialogue: "护士查房正常经过，我没注意。",
+                weakPoints: ["护士查房正常经过，我没注意"],
+                correctBullet: "更衣室监控照片",
+                next: 6,
+                os: "林深：（皱眉）护士查房正常经过...监控显示有人穿走了护士服，身形不像本院任何一个护士。他在隐瞒什么？"
+            },
+            {
+                character: "林深",
+                dialogue: "穿护士服的人，和'护士'是两码事。",
+                weakPoints: [],
+                next: 7
+            },
+            {
+                character: "赵医生",
+                dialogue: "（皱眉）什么意思？",
+                weakPoints: [],
+                next: 8
+            },
+            {
+                character: "林深",
+                dialogue: "更衣室监控图片。4月3日晚上9点47分，有人穿走了护士服。身形不像本院任何一个护士。",
+                weakPoints: [],
+                next: 9
+            },
+            {
+                character: "赵医生",
+                dialogue: "……有人穿了护士服。不是我。",
+                weakPoints: [],
+                next: 10
+            },
+            {
+                character: "林深",
+                dialogue: "你在市立第三医院工作多久了？",
+                weakPoints: [],
+                next: 11
+            },
+            {
+                character: "赵医生",
+                dialogue: "十一年。",
+                weakPoints: [],
+                next: 12
+            },
+            {
+                character: "林深",
+                dialogue: "那你认识张荣。",
+                weakPoints: [],
+                next: 13
+            },
+            {
+                character: "赵医生",
+                dialogue: "……认识。",
+                weakPoints: [],
+                next: 14
+            },
+            {
+                character: "林深",
+                dialogue: "他是你的学生。",
+                weakPoints: [],
+                next: 15
+            },
+            {
+                character: "赵医生",
+                dialogue: "曾经是，他退学了。",
+                weakPoints: [],
+                next: 16
+            },
+            {
+                character: "林深",
+                dialogue: "退学之后你们还有联系吗？",
+                weakPoints: [],
+                next: 17
+            },
+            {
+                character: "赵医生",
+                dialogue: "偶尔。他有时候会来医院坐坐。",
+                weakPoints: ["偶尔。他有时候会来医院坐坐"],
+                correctBullet: "张荣是赵医生的学生",
+                next: 18,
+                os: "林深：（眼神锐利）来坐坐？张荣是他的学生，他们的关系绝不止'坐坐'那么简单。他在刻意淡化这段关系。"
+            },
+            {
+                character: "林深",
+                dialogue: "来坐坐，还是来拿东西？",
+                weakPoints: [],
+                next: 19
+            },
+            {
+                character: "赵医生",
+                dialogue: "……他以前在这实习过，知道药房怎么走。但那不代表什么。",
+                weakPoints: [],
+                next: 20
+            },
+            {
+                character: "林深",
+                dialogue: "药房管理有漏洞，谁都能拿到胰岛素？",
+                weakPoints: [],
+                next: 21
+            },
+            {
+                character: "赵医生",
+                dialogue: "……对。谁都有可能。",
+                weakPoints: [],
+                next: 22
+            },
+            {
+                character: "林深",
+                dialogue: "赵医生，你听过'NEMESIS'这个词吗？",
+                weakPoints: [],
+                next: 23
+            },
+            {
+                character: "赵医生",
+                dialogue: "（脸色变了，笔掉在桌上）……你从哪里听到这个词的？",
+                weakPoints: [],
+                next: 24
+            },
+            {
+                character: "林深",
+                dialogue: "你认识这个词？",
+                weakPoints: [],
+                next: 25
+            },
+            {
+                character: "赵医生",
+                dialogue: "（沉默了很久，声音低下来）……他以前跟我说过一个故事。他说他在网上看到一个古希腊传说，里面有个复仇女神叫NEMESIS，还有个诗人叫ORPHEUS。他们打了一个赌——三局两胜。",
+                weakPoints: [],
+                next: 26
+            },
+            {
+                character: "林深",
+                dialogue: "他什么时候跟你说的？",
+                weakPoints: [],
+                next: 27
+            },
+            {
+                character: "赵医生",
+                dialogue: "几个月前。我当时以为他只是……随便聊聊。我没当回事。（抬头看林深）我以为那个故事只有我们知道。",
+                weakPoints: [],
+                next: 28
+            },
+            {
+                character: "林深",
+                dialogue: "他现在不这么认为了。",
+                weakPoints: [],
+                next: 29
+            },
+            {
+                character: "赵医生",
+                dialogue: "（沉默，手放在桌上，指节发白）……你想问什么？",
+                weakPoints: [],
+                next: 30
+            },
+            {
+                character: "林深",
+                dialogue: "他为什么退学？",
+                weakPoints: [],
+                next: 31
+            },
+            {
+                character: "赵医生",
+                dialogue: "（低头）他母亲去世之后。他母亲是我的病人。",
+                weakPoints: [],
+                next: 32
+            },
+            {
+                character: "林深",
+                dialogue: "什么病？",
+                weakPoints: [],
+                next: 33
+            },
+            {
+                character: "赵医生",
+                dialogue: "扩张型心肌病。发现的时候已经太晚了。",
+                weakPoints: [],
+                next: 34
+            },
+            {
+                character: "林深",
+                dialogue: "你没能救她。",
+                weakPoints: [],
+                next: 35
+            },
+            {
+                character: "赵医生",
+                dialogue: "……我没能救她。她走的时候，他在医院门口跪了一整夜。我去劝过他，我说'你母亲走得没有痛苦'——他当时什么也没说。",
+                weakPoints: [],
+                next: 36
+            },
+            {
+                character: "林深",
+                dialogue: "然后呢？",
+                weakPoints: [],
+                next: 37
+            },
+            {
+                character: "赵医生",
+                dialogue: "然后他就消失了。我以为他走出来了，（停顿）直到他回来。",
+                weakPoints: [],
+                next: 38
+            },
+            {
+                character: "林深",
+                dialogue: "回来做什么？",
+                weakPoints: [],
+                next: 39
+            },
+            {
+                character: "赵医生",
+                dialogue: "他跟我说，他在网上遇到了一个人。他们定了一个规则。三局两胜。他说他只要赢最后一局，就可以退出了。",
+                weakPoints: [],
+                next: 40
+            },
+            {
+                character: "林深",
+                dialogue: "最后一局是什么？",
+                weakPoints: [],
+                next: 41
+            },
+            {
+                character: "赵医生",
+                dialogue: "……他没告诉我。他只是说，第三局结束，他就自由了。我当时以为他在说游戏。",
+                weakPoints: ["我当时以为他在说游戏"],
+                correctBullet: "NEMESIS传说",
+                next: 42,
+                os: "林深：（心中一紧）以为是游戏？NEMESIS是复仇女神，这不是游戏，是他的复仇规则。赵医生到现在还没明白事情的严重性。"
+            },
+            {
+                character: "林深",
+                dialogue: "审讯结束。赵医生的供词让我们对整个案件有了全新的认识。张荣的复仇计划已经开始，而我们必须在下一局开始前阻止他。",
+                weakPoints: [],
+                next: -1
+            }
+        ];
+
+        const evidenceData = [
+            { id: "更衣室监控照片", text: "4月3日晚上9点47分，有人穿走了护士服。身形不像本院任何一个护士。" },
+            { id: "张荣是赵医生的学生", text: "张荣曾在第三医院实习，赵医生是他的导师。退学后仍保持联系。" },
+            { id: "药房管理漏洞", text: "药房存在管理漏洞，非医护人员也能进入获取药品。" },
+            { id: "NEMESIS传说", text: "古希腊复仇女神与诗人ORPHEUS的赌约——三局两胜。张荣将此作为复仇计划的规则。" },
+            { id: "张荣母亲的病历", text: "张荣母亲患有扩张型心肌病，赵医生未能挽救她的生命。" }
+        ];
+
+        class DanganronpaTrial {
+            constructor() {
+                this.currentTrial = 0;
+                this.score = 0;
+                this.selectedEvidence = null;
+                this.gameOver = false;
+                this.gameStarted = false;
+                this.suspectSelected = false;
+                this.evidenceSubmitted = false;
+                this.osDisplayed = false;
+
+                this.characterImageEl = document.getElementById('character-image');
+                this.characterNameEl = document.getElementById('character-name');
+                this.dialogueTextEl = document.getElementById('dialogue-text');
+                this.dialogueAreaEl = document.getElementById('dialogue-area');
+                this.evidenceListEl = document.getElementById('evidence-list');
+                this.submitBtnEl = document.getElementById('submit-btn');
+                this.gameOverEl = document.getElementById('game-over');
+                this.resultTitleEl = document.getElementById('result-title');
+                this.resultTextEl = document.getElementById('result-text');
+                this.endingStoryEl = document.getElementById('ending-story');
+                this.startScreenEl = document.getElementById('start-screen');
+                this.startBtnEl = document.getElementById('start-btn');
+                this.restartBtnEl = document.querySelector('.restart-btn');
+                this.helpBtnEl = document.getElementById('help-btn');
+                this.helpScreenEl = document.getElementById('help-screen');
+                this.backBtnEl = document.getElementById('back-btn');
+                this.goalDisplayEl = document.getElementById('goal-display');
+                this.submitEvidenceMusicEl = document.getElementById('submitEvidenceMusic');
+                this.evidenceCorrectSfxEl = document.getElementById('evidenceCorrectSfx');
+                this.evidenceWrongSfxEl = document.getElementById('evidenceWrongSfx');
+
+                this.bindEvents();
+                this.init();
+            }
+
+            // ===== 提交证据音乐 & 正确/错误音效 控制 =====
+            // 通用：对单个 audio 做一次 play→pause 解锁
+            _unlockAudio(el) {
+                if (!el) return;
+                const wasPaused = el.paused;
+                const p = el.play();
+                if (p && typeof p.then === 'function') {
+                    p.then(() => {
+                        if (wasPaused) {
+                            try { el.pause(); } catch (e) {}
+                            try { el.currentTime = 0; } catch (e) {}
+                        }
+                    }).catch(() => {});
+                }
+            }
+            unlockAllAudio() {
+                this._unlockAudio(this.submitEvidenceMusicEl);
+                this._unlockAudio(this.evidenceCorrectSfxEl);
+                this._unlockAudio(this.evidenceWrongSfxEl);
+            }
+            // 通用：从头播放一个音效
+            _playSfx(el) {
+                if (!el) return;
+                try { el.currentTime = 0; } catch (e) {}
+                const p = el.play();
+                if (p && typeof p.then === 'function') {
+                    p.catch(() => {
+                        const onFirst = () => {
+                            el.play().catch(() => {});
+                            document.removeEventListener('click', onFirst);
+                            document.removeEventListener('keydown', onFirst);
+                        };
+                        document.addEventListener('click', onFirst);
+                        document.addEventListener('keydown', onFirst);
+                    });
+                }
+            }
+            playCorrectSfx() { this._playSfx(this.evidenceCorrectSfxEl); }
+            playWrongSfx()   { this._playSfx(this.evidenceWrongSfxEl); }
+
+            playSubmitEvidenceMusic() {
+                const el = this.submitEvidenceMusicEl;
+                if (!el) return;
+                try { el.currentTime = 0; } catch (e) {}
+                const p = el.play();
+                if (p && typeof p.then === 'function') {
+                    p.catch(() => {
+                        // 被浏览器阻止：等首次交互后再播
+                        const onFirst = () => {
+                            el.play().catch(() => {});
+                            document.removeEventListener('click', onFirst);
+                            document.removeEventListener('keydown', onFirst);
+                        };
+                        document.addEventListener('click', onFirst);
+                        document.addEventListener('keydown', onFirst);
+                    });
+                }
+            }
+            stopSubmitEvidenceMusic() {
+                const el = this.submitEvidenceMusicEl;
+                if (!el) return;
+                try {
+                    if (!el.paused) el.pause();
+                    el.currentTime = 0;
+                } catch (e) {}
+            }
+
+            init() {
+                // 接入全局 GameState（场景路由 / 证据 / 得分）
+                if (window.GameState) {
+                    GameState.setCurrentScene('level2-trial');
+                }
+                this.updateUI();
+            }
+
+            bindEvents() {
+                this.startBtnEl.addEventListener('click', () => this.startGame());
+                this.restartBtnEl.addEventListener('click', () => {
+                    // 审讯成功 → 进入下一场景；失败 → 重新审讯
+                    if (this.lastEndSuccess && window.GameState) {
+                        GameState.next();
+                    } else {
+                        this.resetGame();
+                    }
+                });
+                this.helpBtnEl.addEventListener('click', () => this.showHelp());
+                this.backBtnEl.addEventListener('click', () => this.hideHelp());
+                
+                // 证据列表点击事件，阻止冒泡
+                this.evidenceListEl.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    if (e.target.classList.contains('evidence-item')) {
+                        this.selectEvidence(e.target);
+                    }
+                });
+                
+                // 提交按钮点击事件，阻止冒泡
+                this.submitBtnEl.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    this.checkEvidence();
+                });
+                
+                // 对话区域点击事件：点击进入下一句或显示OS
+                this.dialogueAreaEl.addEventListener('click', () => {
+                    if (!this.gameOver) {
+                        const current = trialData[this.currentTrial];
+                        // 如果当前对话有矛盾点且尚未提交证据
+                        if (current && current.weakPoints && current.weakPoints.length > 0 && !this.evidenceSubmitted) {
+                            // 如果OS还未显示，点击显示OS
+                            if (current.os && !this.osDisplayed) {
+                                this.characterNameEl.textContent = '林深（内心）';
+                                this.dialogueTextEl.innerHTML = `<span class="os-text">${current.os}</span>`;
+                                this.osDisplayed = true;
+                                // 显示提交证据按钮
+                                this.submitBtnEl.classList.add('active');
+                                if (this.selectedEvidence) {
+                                    this.submitBtnEl.classList.remove('disabled');
+                                } else {
+                                    this.submitBtnEl.classList.add('disabled');
+                                }
+                                return;
+                            }
+                            // OS已显示，点击无效（必须提交证据）
+                            return;
+                        }
+                        // 清除所有定时器，直接进入下一句
+                        if (this.dialogueTimer) {
+                            clearTimeout(this.dialogueTimer);
+                        }
+                        if (this.playerReasoningTimer) {
+                            clearTimeout(this.playerReasoningTimer);
+                        }
+                        this.nextTrial();
+                    }
+                });
+            }
+
+            startGame() {
+                this.startScreenEl.classList.add('hidden');
+                this.startScreenEl.style.display = 'none';
+                this.gameStarted = true;
+                // 用户已点击"开始审讯" → 解锁所有音频上下文
+                this.unlockAllAudio();
+                this.resetGame();
+            }
+
+            resetGame() {
+                this.currentTrial = 0;
+                this.score = 0;
+                this.selectedEvidence = null;
+                this.gameOver = false;
+                this.stopSubmitEvidenceMusic();
+
+                this.gameOverEl.classList.remove('show');
+                this.updateUI();
+            }
+
+            updateGoalDisplay() {
+                const idx = this.currentTrial;
+                let goalText = '';
+                
+                if (idx <= 11) {
+                    goalText = '打破防线：了解案情经过';
+                } else if (idx <= 22) {
+                    goalText = '建立联系：证明张荣与赵医生的关系';
+                } else if (idx <= 29) {
+                    goalText = '击溃心理防线：抛出NEMESIS关键词';
+                } else if (idx <= 40) {
+                    goalText = '击溃最后的防线：揭示张荣的复仇动机';
+                } else {
+                    goalText = '审讯结束：总结案件真相';
+                }
+                
+                this.goalDisplayEl.textContent = goalText;
+            }
+
+            updateUI() {
+                const current = trialData[this.currentTrial];
+                if (current) {
+                    // 根据当前对话进度更新目标显示
+                    this.updateGoalDisplay();
+                    
+                    // 重置证据提交标志（切换对话时）
+                    this.evidenceSubmitted = false;
+                    
+                    // 显示角色立绘图片
+                    const sprite = characterSprites[current.character];
+                    if (sprite) {
+                        this.characterImageEl.innerHTML = `<img src="${sprite}" alt="${current.character}">`;
+                    } else {
+                        this.characterImageEl.textContent = current.character;
+                    }
+                    this.characterNameEl.textContent = current.character;
+                    
+                    // 重置OS显示标志
+                    this.osDisplayed = false;
+                    
+                    // 先显示对话文本
+                    this.displayDialogue(current.dialogue);
+                    
+                    // ===== 矛盾点对话出现时 → 立刻播放提交证据音乐 =====
+                    if (current.weakPoints && current.weakPoints.length > 0) {
+                        this.playSubmitEvidenceMusic();
+                    } else {
+                        this.stopSubmitEvidenceMusic();
+                    }
+                    
+                    // 检查是否是选择环节
+                    if (current.isChoose环节 && current.suspects) {
+                        // 显示嫌疑人选择列表
+                        this.showSuspectList(current.suspects);
+                        // 隐藏提交按钮
+                        this.submitBtnEl.classList.remove('active');
+                    } else {
+                        // 重新渲染证据列表，但保持当前选择状态
+                        this.evidenceListEl.innerHTML = '';
+                        evidenceData.forEach(evidence => {
+                            const item = document.createElement('div');
+                            item.className = 'evidence-item';
+                            item.dataset.id = evidence.id;
+                            item.textContent = evidence.id;
+                            if (this.selectedEvidence === evidence.id) {
+                                item.classList.add('selected');
+                            }
+                            this.evidenceListEl.appendChild(item);
+                        });
+                        
+                        // 控制提交按钮显示：只有当有weakPoints且OS已显示时才显示
+                        if (current.weakPoints && current.weakPoints.length > 0 && this.osDisplayed) {
+                            this.submitBtnEl.classList.add('active');
+                            if (this.selectedEvidence) {
+                                this.submitBtnEl.classList.remove('disabled');
+                            } else {
+                                this.submitBtnEl.classList.add('disabled');
+                            }
+                        } else {
+                            this.submitBtnEl.classList.remove('active');
+                        }
+                        
+                        // 所有对话通过点击跳转，不设置自动定时器
+                    }
+                }
+            }
+
+            showSuspectList(suspects) {
+                this.evidenceListEl.innerHTML = '';
+                this.suspectSelected = false; // 重置选择标志
+                
+                suspects.forEach(suspect => {
+                    const item = document.createElement('div');
+                    item.className = 'evidence-item';
+                    item.dataset.name = suspect.name;
+                    item.dataset.correct = suspect.isCorrect;
+                    item.innerHTML = `<strong>${suspect.name}</strong><br>${suspect.role}`;
+                    item.style.pointerEvents = 'auto'; // 启用点击
+                    item.addEventListener('click', () => {
+                        this.selectSuspect(suspect);
+                    });
+                    this.evidenceListEl.appendChild(item);
+                });
+            }
+
+            selectSuspect(suspect) {
+                if (this.suspectSelected || this.gameOver) { // 防止重复点击
+                    return;
+                }
+                this.suspectSelected = true; // 立即设置标志
+                
+                if (suspect.isCorrect) {
+                    this.score++;
+                    this.gameOver = true; // 立即设置游戏结束标志，防止重复计分
+                    
+                    // 清除所有定时器
+                    if (this.dialogueTimer) {
+                        clearTimeout(this.dialogueTimer);
+                    }
+                    if (this.playerReasoningTimer) {
+                        clearTimeout(this.playerReasoningTimer);
+                    }
+                    
+                    // 显示选择正确的提示
+                    this.characterNameEl.textContent = '刑警';
+                    this.dialogueTextEl.innerHTML = `<span class="normal-text">我宣布，真凶就是你——${suspect.name}！</span>`;
+                    
+                    // 0.5 秒后进入游戏结束（进一步缩短时间）
+                    setTimeout(() => {
+                        this.endGame();
+                    }, 500);
+                } else {
+                    // 显示选择错误的提示
+                    this.dialogueTextEl.classList.add('shake');
+                    setTimeout(() => {
+                        this.dialogueTextEl.classList.remove('shake');
+                        this.dialogueTextEl.innerHTML = `<span class="normal-text">错误！再仔细想想。</span>`;
+                        this.suspectSelected = false; // 允许重新选择
+                    }, 500);
+                }
+            }
+
+            displayDialogue(dialogue) {
+                this.dialogueTextEl.innerHTML = `<span class="normal-text">${dialogue}</span>`;
+            }
+
+            selectEvidence(element) {
+                const evidenceId = element.dataset.id;
+                this.selectedEvidence = evidenceId;
+                
+                // 更新证据列表的选中状态，不调用updateUI()
+                const items = this.evidenceListEl.querySelectorAll('.evidence-item');
+                items.forEach(item => {
+                    if (item.dataset.id === evidenceId) {
+                        item.classList.add('selected');
+                    } else {
+                        item.classList.remove('selected');
+                    }
+                });
+                
+                // 更新提交按钮状态
+                const current = trialData[this.currentTrial];
+                if (current && current.weakPoints && current.weakPoints.length > 0 && this.osDisplayed) {
+                    this.submitBtnEl.classList.remove('disabled');
+                }
+            }
+
+            checkEvidence() {
+                // 如果提交按钮处于禁用状态，不执行提交
+                if (this.submitBtnEl.classList.contains('disabled')) {
+                    return;
+                }
+                // 用户已提交证据 → 立刻停止提交音乐
+                this.stopSubmitEvidenceMusic();
+                
+                const current = trialData[this.currentTrial];
+                if (current.correctBullet && this.selectedEvidence === current.correctBullet) {
+                    // ===== 证据正确 =====
+                    this.playCorrectSfx();
+                    // 清除自动进入下一句的定时器
+                    if (this.dialogueTimer) {
+                        clearTimeout(this.dialogueTimer);
+                    }
+                    this.score++;
+                    this.dialogueTextEl.classList.add('shake');
+                    
+                    // 显示反驳成功的提示
+                    const successMessage = document.createElement('div');
+                    successMessage.className = 'success';
+                    successMessage.textContent = '反驳成功！';
+                    this.dialogueTextEl.appendChild(successMessage);
+                    
+                    // 标记证据已提交
+                    this.evidenceSubmitted = true;
+                    
+                    // 显示反驳成功的提示和玩家的推理
+                    setTimeout(() => {
+                        this.dialogueTextEl.classList.remove('shake');
+                        // 移除成功提示
+                        if (successMessage.parentNode) {
+                            successMessage.parentNode.removeChild(successMessage);
+                        }
+                        this.showPlayerReasoning(current.correctBullet);
+                    }, 1000);
+                } else {
+                    // ===== 证据错误 =====
+                    this.playWrongSfx();
+                    // 错误选择的反馈：赵医生给出合理解释
+                    this.dialogueTextEl.classList.add('shake');
+                    
+                    const errorMessages = {
+                        '更衣室监控照片': '那张照片太模糊了，根本看不清是谁。',
+                        '张荣是赵医生的学生': '认识不代表我参与了什么。很多学生都回来过。',
+                        '药房管理漏洞': '漏洞是医院的问题，不是我的问题。',
+                        'NEMESIS传说': '那只是个故事，我从来没当真过。',
+                        '张荣母亲的病历': '我已经尽力了，这不能怪我。'
+                    };
+                    
+                    const errorMsg = errorMessages[this.selectedEvidence] || '这不能证明什么。';
+                    
+                    setTimeout(() => {
+                        this.dialogueTextEl.classList.remove('shake');
+                        // 显示赵医生的合理解释
+                        this.characterNameEl.textContent = '赵医生';
+                        this.dialogueTextEl.innerHTML = `<span class="normal-text">${errorMsg}</span>`;
+                        
+                        // 2秒后跳转回OS状态
+                        setTimeout(() => {
+                            if (!this.gameOver && !this.evidenceSubmitted) {
+                                this.characterNameEl.textContent = '林深（内心）';
+                                this.dialogueTextEl.innerHTML = `<span class="os-text">${current.os}</span>`;
+                            }
+                        }, 2000);
+                    }, 500);
+                }
+            }
+
+            showPlayerReasoning(bulletId) {
+                const reasoningMap = {
+                    '更衣室监控照片': '监控显示有人穿走了护士服，身形不像本院任何一个护士。你说"护士查房正常经过"——穿护士服的人，和真正的护士，是两码事！',
+                    '张荣是赵医生的学生': '张荣是你的学生，你们关系不一般。他来医院不是"坐坐"那么简单，而是有其他目的！',
+                    'NEMESIS传说': '这不是游戏，赵医生。NEMESIS是复仇女神，张荣把这个传说变成了他的复仇规则。三局两胜——他说的"自由"，是完成复仇后的解脱！'
+                };
+                
+                const reasoning = reasoningMap[bulletId] || '我找到了关键证据！';
+                
+                this.characterNameEl.textContent = '林深';
+                this.dialogueTextEl.innerHTML = `<span class="normal-text">${reasoning}</span>`;
+                
+                this.playerReasoningTimer = setTimeout(() => {
+                    this.nextTrial();
+                }, 3000);
+            }
+
+            nextTrial() {
+                // 清除所有定时器
+                if (this.dialogueTimer) {
+                    clearTimeout(this.dialogueTimer);
+                }
+                if (this.playerReasoningTimer) {
+                    clearTimeout(this.playerReasoningTimer);
+                }
+                
+                const current = trialData[this.currentTrial];
+                if (current.next === -1) {
+                    this.endGame();
+                } else {
+                    this.currentTrial = current.next;
+                    // 保持证据选择状态，不重置
+                    this.updateUI();
+                }
+            }
+
+            showHelp() {
+                this.startScreenEl.style.display = 'none';
+                this.helpScreenEl.classList.add('show');
+            }
+
+            hideHelp() {
+                this.helpScreenEl.classList.remove('show');
+                this.startScreenEl.style.display = 'flex';
+            }
+
+            endGame() {
+                if (this.gameOver) {
+                    return;
+                }
+                
+                this.gameOver = true;
+                this.stopSubmitEvidenceMusic();
+                const success = this.score >= 2;
+                
+                if (success) {
+                    this.resultTitleEl.textContent = '审讯成功！';
+                    this.resultTitleEl.className = 'success';
+                    this.resultTextEl.textContent = `调查得分: ${this.score}/3`;
+                    this.endingStoryEl.textContent = '赵医生的心理防线被彻底攻破。他交代了张荣的复仇计划和NEMESIS赌约的真相。警方掌握了关键线索——张荣的第三局游戏即将开始。你必须在下一局开始前找到他的藏身之处，阻止这场悲剧的延续。';
+                    this.restartBtnEl.textContent = '揭示完整传说';
+                } else {
+                    this.resultTitleEl.textContent = '审讯失败';
+                    this.resultTitleEl.className = 'failure';
+                    this.resultTextEl.textContent = `调查得分: ${this.score}/3`;
+                    this.endingStoryEl.textContent = '赵医生的心理防线未能被攻破。但你已经触摸到了真相的边缘——NEMESIS、三局两胜、张荣的复仇。为了阻止第三局的发生，你必须重新审讯，找到那些被遗漏的关键线索。';
+                    this.restartBtnEl.textContent = '重新审讯';
+                }
+
+                // 上传得分与证据到 GameState
+                if (window.GameState) {
+                    GameState.setCurrentScene('level2-trial');
+                    GameState.setScore('level2-trial', this.score);
+                    if (success) {
+                        GameState.addEvidence('trial-confession');
+                    }
+                    GameState.injectEvidencePanel({ theme: 'dark' });
+                }
+
+                // 标记本次结局是否成功，供 restart 按钮判断走向
+                this.lastEndSuccess = success;
+
+                this.gameOverEl.classList.add('show');
+            }
+        }
+
+        window.addEventListener('load', () => {
+            new DanganronpaTrial();
+        });
+    </script>
+</body>
+</html>

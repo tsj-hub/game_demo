@@ -1,0 +1,575 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>剧情 3 · 张荣宿舍搜查</title>
+<style>
+  :root {
+    --bg: #0a0a0c;
+    --paper: #1a1814;
+    --ink: #d8c9a3;
+    --ink-dim: #8a7e62;
+    --accent: #c8924a;
+    --accent-soft: rgba(200, 146, 74, 0.18);
+    --danger: #b54a3a;
+    --frame: #2a2620;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  html, body {
+    width: 100%; height: 100%;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: "PingFang SC", "Microsoft YaHei", sans-serif;
+    overflow: hidden;
+    user-select: none;
+    -webkit-font-smoothing: antialiased;
+  }
+  /* 张荣宿舍现场背景图 */
+  body {
+    background-image: url("素材/素材/宿舍现场.webp");
+    background-size: cover;
+    background-position: center;
+    background-attachment: fixed;
+  }
+  body::before {
+    content: "";
+    position: fixed; inset: 0;
+    background: linear-gradient(180deg, rgba(10, 10, 12, 0.35) 0%, rgba(10, 10, 12, 0.55) 100%);
+    pointer-events: none;
+    z-index: 0;
+  }
+  .case-bar, .scene { position: relative; z-index: 1; }
+
+  .case-bar {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 14px 28px;
+    background: linear-gradient(180deg, #14130f 0%, #0a0a0c 100%);
+    border-bottom: 1px solid var(--frame);
+    position: sticky; top: 0; z-index: 10;
+  }
+  .case-bar .title { font-size: 14px; letter-spacing: 0.12em; color: var(--ink-dim); }
+  .case-bar .title strong { color: var(--accent); font-weight: 500; letter-spacing: 0.18em; }
+  .case-bar .stage { font-size: 13px; color: var(--ink); }
+  .case-bar .progress { display: flex; gap: 6px; align-items: center; }
+  .case-bar .progress .label { font-size: 12px; color: var(--ink-dim); margin-right: 6px; letter-spacing: 0.1em; }
+  .case-bar .progress .dot {
+    width: 12px; height: 12px; border: 1px solid var(--ink-dim);
+    border-radius: 50%; transition: all 0.4s;
+  }
+  .case-bar .progress .dot.found {
+    background: var(--accent); border-color: var(--accent);
+    box-shadow: 0 0 8px var(--accent-soft);
+  }
+
+  .scene {
+    width: 100%; height: calc(100vh - 56px);
+    position: relative;
+    overflow: hidden;
+    display: flex; align-items: stretch; justify-content: center;
+  }
+  /* 透明容器：仅作为热点定位参考，不再绘制褐色边框与渐变 */
+  .room {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    background: transparent;
+    border: none;
+    box-shadow: none;
+  }
+
+  /* ===== 透明点击热点（直接覆盖在背景图上） ===== */
+  .hotspot {
+    position: absolute;
+    cursor: pointer;
+    z-index: 4;
+    background: transparent;
+    border: 1px dashed rgba(200, 146, 74, 0.0);
+    transition: all 0.25s;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+  }
+  .hotspot .label {
+    position: absolute;
+    bottom: 6px; left: 50%;
+    transform: translateX(-50%);
+    font-size: 11px;
+    color: rgba(216, 201, 163, 0.55);
+    letter-spacing: 2px;
+    white-space: nowrap;
+    text-shadow: 0 1px 4px rgba(0,0,0,0.9);
+    transition: all 0.25s;
+    pointer-events: none;
+  }
+  .hotspot:hover {
+    background: rgba(200, 146, 74, 0.08);
+    border-color: rgba(200, 146, 74, 0.55);
+    box-shadow: inset 0 0 24px rgba(200, 146, 74, 0.15);
+  }
+  .hotspot:hover .label {
+    color: var(--accent);
+    text-shadow: 0 0 10px rgba(200, 146, 74, 0.6);
+  }
+  .hotspot.viewed {
+    border: 1px solid rgba(200, 146, 74, 0.35);
+    background: rgba(200, 146, 74, 0.04);
+  }
+  .hotspot.viewed .label { color: var(--accent); opacity: 0.7; }
+  .hotspot.viewed::after {
+    content: "✓";
+    position: absolute;
+    top: 4px; right: 6px;
+    color: var(--accent);
+    font-size: 14px;
+    font-weight: bold;
+    text-shadow: 0 0 8px rgba(0,0,0,0.9);
+  }
+
+  /* 热点位置：桌上抽屉 / 墙上剪报 / 床底收纳箱（根据背景图实际布局） */
+  .drawer-spot {
+    left: 42%; top: 50%;
+    width: 14%; height: 40%;
+  }
+  .clip-spot {
+    left: 52%; top: 5%;
+    width: 9%; height: 30%;
+  }
+  .bottle-spot {
+    left: 5%; top: 70%;
+    width: 39%; height: 30%;
+  }
+
+  /* 弹窗 */
+  .modal-mask {
+    position: fixed; inset: 0;
+    background: rgba(0, 0, 0, 0.85);
+    backdrop-filter: blur(6px);
+    z-index: 100;
+    display: none;
+    align-items: center; justify-content: center;
+    padding: 24px;
+  }
+  .modal-mask.show { display: flex; animation: fadeIn 0.3s ease; }
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+  .modal-box {
+    width: 90%; max-width: 580px;
+    background: linear-gradient(180deg, #1f1c16 0%, #16140f 100%);
+    border: 1px solid var(--accent);
+    padding: 28px 32px 26px;
+    position: relative;
+    box-shadow: 0 0 40px rgba(200, 146, 74, 0.25);
+    max-height: 88vh;
+    overflow-y: auto;
+  }
+  .modal-box::before {
+    content: "";
+    position: absolute;
+    top: 10px; left: 10px; right: 10px; bottom: 10px;
+    border: 1px solid rgba(200, 146, 74, 0.18);
+    pointer-events: none;
+  }
+  .modal-box .tag {
+    font-size: 11px; letter-spacing: 0.2em;
+    color: var(--accent); margin-bottom: 6px;
+    text-transform: uppercase;
+  }
+  .modal-box h3 {
+    font-size: 17px; font-weight: 500;
+    color: var(--ink); letter-spacing: 0.05em;
+    margin-bottom: 14px;
+  }
+  .modal-box .content {
+    font-size: 14px; line-height: 1.85;
+    color: var(--ink);
+  }
+  .modal-box .content p { margin-bottom: 8px; }
+  .modal-box .content .manuscript {
+    background: #f4eed8;
+    color: #1a1a1a;
+    padding: 20px 24px;
+    margin: 12px 0;
+    border-left: 3px solid var(--accent);
+    font-family: "KaiTi", "STKaiti", cursive;
+    font-size: 15px;
+    line-height: 2.1;
+    position: relative;
+  }
+  .modal-box .content .manuscript .anno {
+    color: var(--danger);
+    font-weight: bold;
+    font-size: 13px;
+    margin-left: 6px;
+    letter-spacing: 0.05em;
+  }
+  .modal-box .content .manuscript .anno::before {
+    content: "【批注】";
+    font-size: 11px;
+  }
+  .modal-box .content .clipping {
+    background: #f4eed8;
+    color: #1a1a1a;
+    padding: 14px 18px;
+    margin: 10px 0;
+    font-family: "Courier New", monospace;
+    font-size: 12.5px;
+    line-height: 1.8;
+    border: 1px solid #888;
+    transform: rotate(-1deg);
+  }
+  .modal-box .content .clipping .head {
+    font-weight: bold;
+    border-bottom: 1px solid #888;
+    padding-bottom: 4px;
+    margin-bottom: 6px;
+    font-size: 13px;
+  }
+  .modal-box .content .bottle-list {
+    background: rgba(244, 238, 216, 0.95);
+    color: #1a1a1a;
+    padding: 14px 18px;
+    margin: 12px 0;
+    font-family: "Courier New", monospace;
+    font-size: 13px;
+    line-height: 1.9;
+    border: 1px solid #888;
+  }
+  .modal-box .content .bottle-list .row {
+    display: flex; justify-content: space-between;
+    border-bottom: 1px dashed #888;
+    padding: 3px 0;
+  }
+  .modal-box .content .bottle-list .row:last-child { border: none; }
+  .modal-box .lin-note {
+    margin-top: 14px;
+    background: rgba(200, 146, 74, 0.06);
+    border-left: 2px solid var(--accent);
+    padding: 12px 16px;
+    font-style: italic;
+    color: var(--ink);
+    font-size: 14px;
+    line-height: 1.8;
+  }
+  .modal-box .close-row {
+    margin-top: 18px; text-align: center;
+  }
+  .modal-box .close-row button {
+    background: transparent;
+    border: 1px solid var(--accent);
+    color: var(--accent);
+    padding: 8px 22px;
+    font-size: 12px;
+    letter-spacing: 0.2em;
+    cursor: pointer;
+    font-family: inherit;
+    transition: all 0.2s;
+  }
+  .modal-box .close-row button:hover {
+    background: var(--accent); color: #1a1814;
+  }
+
+  /* 介绍说明 */
+  .brief {
+    position: absolute;
+    top: 14px; left: 50%;
+    transform: translateX(-50%);
+    font-size: 12px;
+    color: var(--ink-dim);
+    letter-spacing: 0.1em;
+    text-align: center;
+    background: rgba(0, 0, 0, 0.4);
+    padding: 6px 18px;
+    border: 1px solid var(--frame);
+    z-index: 5;
+  }
+  .brief em {
+    color: var(--accent);
+    font-style: normal;
+    border-bottom: 1px dashed var(--accent);
+  }
+
+  /* 总结弹窗 */
+  .summary-box {
+    text-align: left;
+  }
+  .summary-box h2 {
+    font-size: 18px; color: var(--accent);
+    letter-spacing: 0.08em; font-weight: 500;
+    margin-bottom: 8px;
+  }
+  .summary-box .sub {
+    font-size: 12px; color: var(--ink-dim);
+    letter-spacing: 0.15em; margin-bottom: 22px;
+  }
+  .summary-box .verdict {
+    border-top: 1px solid var(--frame);
+    border-bottom: 1px solid var(--frame);
+    padding: 18px 0;
+    margin-bottom: 18px;
+  }
+  .summary-box .verdict .row {
+    display: flex; justify-content: space-between;
+    padding: 4px 0;
+    font-size: 13.5px; color: var(--ink);
+  }
+  .summary-box .verdict .row .k { color: var(--ink-dim); letter-spacing: 0.08em; }
+  .summary-box .verdict .row .v { color: var(--accent); font-weight: 500; }
+  .summary-box .note-final {
+    background: rgba(200, 146, 74, 0.06);
+    border-left: 2px solid var(--accent);
+    padding: 12px 16px;
+    font-style: italic;
+    color: var(--ink);
+    font-size: 14.5px;
+    line-height: 1.8;
+    margin-bottom: 22px;
+  }
+
+  @media (max-width: 768px) {
+    .case-bar { padding: 10px 16px; }
+    .case-bar .title { font-size: 12px; }
+    .case-bar .progress .dot { width: 10px; height: 10px; }
+    .modal-box { padding: 22px 18px 20px; }
+    .brief { font-size: 11px; padding: 4px 12px; }
+  }
+</style>
+</head>
+<body data-gs-theme="paper">
+  <!-- 点击音效：张荣宿舍搜查 3 处关键物证点击时播放 -->
+  <audio id="clickSfx" src="点击.mp3" preload="auto"></audio>
+
+  <div class="case-bar">
+    <div class="title">案件 <strong>02</strong> · 穿白衣服的人</div>
+    <div class="stage">剧情 3 · 张荣宿舍搜查</div>
+    <div class="progress">
+      <span class="label">宿舍搜查</span>
+      <div class="dot" id="d1"></div>
+      <div class="dot" id="d2"></div>
+      <div class="dot" id="d3"></div>
+    </div>
+  </div>
+
+  <div class="scene">
+    <div class="room">
+      <div class="brief">
+        市第三职业学校 · 男生宿舍 412 · 张荣床位<br>
+        翻找 <em>三处关键物证</em>：桌上抽屉、墙上剪报、床底收纳箱
+      </div>
+
+      <!-- 透明点击热点：直接覆盖在背景图对应元素上 -->
+      <div class="hotspot drawer-spot" data-id="drawer">
+        <span class="label">桌 上 抽 屉</span>
+      </div>
+      <div class="hotspot clip-spot" data-id="clippings">
+        <span class="label">墙 上 剪 报</span>
+      </div>
+      <div class="hotspot bottle-spot" data-id="bottle">
+        <span class="label">床 底 收 纳 箱</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- 物品弹窗 -->
+  <div class="modal-mask" id="modalMask">
+    <div class="modal-box" id="modalBox">
+      <div class="tag" id="mTag">物 品 · 详 情</div>
+      <h3 id="mTitle"></h3>
+      <div class="content" id="mContent"></div>
+      <div class="lin-note" id="mNote" style="display:none;"></div>
+      <div class="close-row">
+        <button id="mClose">记 下</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 总结弹窗 -->
+  <div class="modal-mask" id="summaryMask">
+    <div class="modal-box summary-box">
+      <div class="tag">搜 查 完 成 · 案 件 02 · 剧 情 3</div>
+      <h2>张荣不是孤狼</h2>
+      <div class="sub">基于手抄传说、剪报、药瓶 · 林深推断</div>
+      <div class="verdict">
+        <div class="row"><span class="k">嫌疑人</span><span class="v">张荣 · 19 岁 · 医学系休学</span></div>
+        <div class="row"><span class="k">动机来源</span><span class="v">"复仇者传说"批注</span></div>
+        <div class="row"><span class="k">同伙指向</span><span class="v">"穿白衣的哥哥"</span></div>
+        <div class="row"><span class="k">关联案件</span><span class="v">小雨之死 · 酒店凶案</span></div>
+      </div>
+      <div class="note-final">
+        "传说里写：'我也能成为另一个人'。<br>
+        张荣在批注里圈了这句话，又在下面写了一行字——<br>
+        <b>'赵医生说他可以。'</b><br>
+        这两个孩子，被同一个传说骗了。"
+      </div>
+      <div class="close-row">
+        <button id="summaryClose">前 往 审 讯 室</button>
+      </div>
+    </div>
+  </div>
+
+<script src="game-state.js"></script>
+<script>
+(() => {
+  'use strict';
+  const GameState = window.GameState;
+  GameState.setCurrentScene('story3-dorm');
+  GameState.injectEvidencePanel({ theme: 'paper' });
+
+  // ===== 点击音效（3 处关键物证）=====
+  const clickSfxEl = document.getElementById('clickSfx');
+  function playClickSfx() {
+    if (!clickSfxEl) return;
+    try { clickSfxEl.currentTime = 0; } catch (e) {}
+    const p = clickSfxEl.play();
+    if (p && typeof p.then === 'function') {
+      p.catch(() => {
+        const onFirst = () => {
+          clickSfxEl.play().catch(() => {});
+          document.removeEventListener('click', onFirst);
+          document.removeEventListener('keydown', onFirst);
+        };
+        document.addEventListener('click', onFirst);
+        document.addEventListener('keydown', onFirst);
+      });
+    }
+  }
+  let clickSfxUnlocked = false;
+  function unlockClickSfx() {
+    if (clickSfxUnlocked || !clickSfxEl) return;
+    clickSfxUnlocked = true;
+    const wasPaused = clickSfxEl.paused;
+    const p = clickSfxEl.play();
+    if (p && typeof p.then === 'function') {
+      p.then(() => {
+        if (wasPaused) {
+          try { clickSfxEl.pause(); } catch (e) {}
+          try { clickSfxEl.currentTime = 0; } catch (e) {}
+        }
+      }).catch(() => {});
+    }
+  }
+  document.addEventListener('click', unlockClickSfx, { once: true });
+  document.addEventListener('keydown', unlockClickSfx, { once: true });
+
+  const found = new Set();
+  const total = 3;
+
+  const items = {
+    drawer: {
+      tag: '物 证 · 手 抄 传 说',
+      title: '抽屉深处的笔记本 · 手抄传说',
+      content: `
+        <p>抽屉最深处压着一本硬皮笔记本。翻开第一页，是手抄的"复仇者传说"。</p>
+        <div class="manuscript">
+          ……复仇者问诗人：<br>
+          "我怎样才算另一个人？"<br>
+          诗人说：<br>
+          "做一件你永远不会承认的事。<br>
+          然后，你就不再是原来的你了。"<br>
+          <span class="anno">"我也能成为另一个人" —— 张荣圈了这一句</span><br>
+          <span class="anno">"赵医生说他可以" —— 张荣在下面加了一行</span>
+        </div>
+        <p>笔记本后半部分几乎是空白。只有最后一页写着一个日期——<b>案发前一天</b>。</p>
+      `,
+      note: '"我也能成为另一个人"——这不是一首诗。这是一份报名表。张荣把传说当成了入场券。而给他盖章的人，是赵医生。'
+    },
+    clippings: {
+      tag: '物 证 · 墙 上 剪 报',
+      title: '墙上的剪报 · 三则',
+      content: `
+        <p>墙上的剪报用图钉钉着，纸张已经发黄。三张并排。</p>
+        <div class="clipping">
+          <div class="head">剪报一 · 半年前 · 社会新闻</div>
+          "市第三医院心内科一患儿术后死亡，<br>
+          家属质疑用药，院方称'符合流程'。"<br>
+          <span style="color:#8b0000;">——死者：小雨，7 岁。</span>
+        </div>
+        <div class="clipping">
+          <div class="head">剪报二 · 三个月前 · 本地论坛截图</div>
+          "听说那个医生还在上班。"<br>
+          "举报没人理。"<br>
+          "有人能管管吗？"
+        </div>
+        <div class="clipping">
+          <div class="head">剪报三 · 案发前一周 · 撕下来的便签</div>
+          字迹潦草：<br>
+          "他不会自己停下来的。"<br>
+          "诗人的话没错——<br>
+          <b>必须有人让他成为'另一个人'。</b>"
+        </div>
+      `,
+      note: '三张剪报，时间跨度半年。从"质疑"到"求助"再到"必须动手"——这是一条完整的心理曲线。张荣把这条路走完了。'
+    },
+    bottle: {
+      tag: '物 证 · 床 底 药 瓶',
+      title: '床底鞋盒里的药瓶',
+      content: `
+        <p>床底塞着一个鞋盒。打开，里面整齐摆着五个小药瓶。</p>
+        <div class="bottle-list">
+          <div class="row"><span class="k">药品 1</span><span class="v">胰岛素 · 100U/ml</span></div>
+          <div class="row"><span class="k">药品 2</span><span class="v">地西泮 · 5mg × 20 片</span></div>
+          <div class="row"><span class="k">药品 3</span><span class="v">氯化钾 · 10ml</span></div>
+          <div class="row"><span class="k">药品 4</span><span class="v">肾上腺素 · 1mg/ml</span></div>
+          <div class="row"><span class="k">药品 5</span><span class="v">空瓶 · 标签被撕</span></div>
+        </div>
+        <p>一个休学的医学生，床头有这些——不是为了复习。</p>
+        <p>他显然知道每一样都能致命，也知道每一样在医院里都查得到。</p>
+      `,
+      note: '胰岛素、地西泮、氯化钾——这三样组合在一起，就是"完美的低血糖昏迷"。和赵医生给小雨开的处方如出一辙。学生学老师，学得太像了。'
+    }
+  };
+
+  const modalMask = document.getElementById('modalMask');
+  const summaryMask = document.getElementById('summaryMask');
+
+  document.querySelectorAll('.hotspot').forEach(hs => {
+    hs.addEventListener('click', () => {
+      const id = hs.dataset.id;
+      if (found.has(id)) return;
+      playClickSfx();
+      found.add(id);
+      hs.classList.add('viewed');
+      const dotEl = document.getElementById('d' + found.size);
+      if (dotEl) dotEl.classList.add('found');
+
+      const it = items[id];
+      document.getElementById('mTag').textContent = it.tag;
+      document.getElementById('mTitle').textContent = it.title;
+      document.getElementById('mContent').innerHTML = it.content;
+      const noteEl = document.getElementById('mNote');
+      noteEl.textContent = '— 林深笔记：' + it.note;
+      noteEl.style.display = 'block';
+      modalMask.classList.add('show');
+
+      // 添加证据
+      if (id === 'drawer') GameState.addEvidence('dorm-manuscript');
+      else if (id === 'clippings') GameState.addEvidence('dorm-clippings');
+      else if (id === 'bottle') GameState.addEvidence('dorm-bottle');
+    });
+  });
+
+  document.getElementById('mClose').addEventListener('click', () => {
+    modalMask.classList.remove('show');
+    if (found.size === total) {
+      setTimeout(() => summaryMask.classList.add('show'), 300);
+    }
+  });
+  modalMask.addEventListener('click', (e) => {
+    if (e.target === modalMask) modalMask.classList.remove('show');
+  });
+
+  document.getElementById('summaryClose').addEventListener('click', () => {
+    summaryMask.classList.remove('show');
+    setTimeout(() => GameState.next(), 300);
+  });
+
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') {
+      modalMask.classList.remove('show');
+      summaryMask.classList.remove('show');
+    }
+  });
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,704 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>未命名竞赛 · 第三局</title>
+<style>
+  :root {
+    --bg-deep: #050810;
+    --bg-panel: #0c1220;
+    --cyan: #00d4ff;
+    --cyan-dim: #007a94;
+    --cyan-glow: 0 0 14px rgba(0, 212, 255, 0.7), 0 0 30px rgba(0, 212, 255, 0.3);
+    --text-primary: #d4e4f5;
+    --text-dim: #5a7a96;
+    --text-hint: #6b8399;
+    --border-subtle: rgba(0, 212, 255, 0.15);
+    --border-hover: rgba(0, 212, 255, 0.5);
+    --danger: #b71c1c;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  html, body {
+    width: 100%; height: 100%;
+    background: var(--bg-deep);
+    color: var(--text-primary);
+    font-family: "Microsoft YaHei", "PingFang SC", sans-serif;
+    overflow: hidden;
+    user-select: none;
+  }
+  body::before {
+    content: "";
+    position: fixed; inset: 0;
+    background:
+      radial-gradient(ellipse at 50% 30%, rgba(0, 100, 140, 0.22) 0%, transparent 55%),
+      radial-gradient(ellipse at 50% 100%, rgba(0, 60, 90, 0.18) 0%, transparent 60%),
+      repeating-linear-gradient(0deg, transparent, transparent 3px, rgba(0,0,0,0.08) 3px, rgba(0,0,0,0.08) 4px);
+    pointer-events: none;
+    z-index: 0;
+  }
+  body::after {
+    content: "";
+    position: fixed; inset: 0;
+    background: repeating-linear-gradient(90deg, transparent 0 2px, rgba(0, 212, 255, 0.015) 2px 3px);
+    pointer-events: none;
+    z-index: 0;
+  }
+  /* 主菜单背景图：城市地图 */
+  body {
+    background-image: url("素材/素材/城市地图.webp");
+    background-size: cover;
+    background-position: center;
+    background-attachment: fixed;
+  }
+  body::before {
+    background:
+      radial-gradient(ellipse at 50% 30%, rgba(0, 100, 140, 0.22) 0%, transparent 55%),
+      radial-gradient(ellipse at 50% 100%, rgba(5, 8, 16, 0.7) 0%, transparent 60%),
+      linear-gradient(180deg, rgba(5, 8, 16, 0.55) 0%, rgba(5, 8, 16, 0.75) 100%),
+      repeating-linear-gradient(0deg, transparent, transparent 3px, rgba(0,0,0,0.08) 3px, rgba(0,0,0,0.08) 4px);
+  }
+  .app {
+    position: relative;
+    z-index: 1;
+    width: 100%; height: 100%;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    padding: 30px 24px;
+  }
+  .menu-frame {
+    position: relative;
+    width: 100%;
+    max-width: 720px;
+    padding: 50px 40px 44px;
+    background: rgba(12, 18, 32, 0.65);
+    border: 1px solid var(--border-subtle);
+    border-radius: 4px;
+    box-shadow: inset 0 0 60px rgba(0, 100, 140, 0.08), 0 0 80px rgba(0, 212, 255, 0.1);
+  }
+  .menu-frame::before, .menu-frame::after {
+    content: "";
+    position: absolute;
+    width: 60px; height: 60px;
+    border: 1px solid var(--cyan);
+    opacity: 0.45;
+  }
+  .menu-frame::before { top: -1px; left: -1px; border-right: none; border-bottom: none; }
+  .menu-frame::after  { bottom: -1px; right: -1px; border-left: none; border-top: none; }
+
+  .brand-tag {
+    font-size: 11px;
+    letter-spacing: 8px;
+    color: var(--cyan-dim);
+    text-align: center;
+    margin-bottom: 16px;
+    font-family: "Courier New", monospace;
+  }
+  .game-title {
+    font-size: 64px;
+    letter-spacing: 18px;
+    color: var(--cyan);
+    text-shadow: 0 0 22px rgba(0, 212, 255, 0.8), 0 0 60px rgba(0, 212, 255, 0.3);
+    text-align: center;
+    margin-bottom: 6px;
+    font-weight: 200;
+    animation: titlePulse 4s ease-in-out infinite;
+  }
+  @keyframes titlePulse {
+    0%, 100% { text-shadow: 0 0 22px rgba(0, 212, 255, 0.8), 0 0 60px rgba(0, 212, 255, 0.3); }
+    50%      { text-shadow: 0 0 32px rgba(0, 212, 255, 1),    0 0 90px rgba(0, 212, 255, 0.5); }
+  }
+  .game-subtitle {
+    font-size: 13px;
+    letter-spacing: 12px;
+    color: var(--text-dim);
+    text-align: center;
+    margin-bottom: 6px;
+  }
+  .game-tagline {
+    font-size: 12px;
+    letter-spacing: 2px;
+    color: var(--text-hint);
+    text-align: center;
+    margin-bottom: 38px;
+    font-style: italic;
+    line-height: 1.8;
+  }
+  .menu-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    align-items: center;
+  }
+  .menu-btn {
+    width: 280px;
+    padding: 14px 0;
+    background: transparent;
+    border: 1px solid var(--cyan-dim);
+    color: var(--cyan);
+    font-size: 15px;
+    letter-spacing: 6px;
+    cursor: pointer;
+    font-family: inherit;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+  }
+  .menu-btn::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(90deg, transparent, rgba(0, 212, 255, 0.15), transparent);
+    transform: translateX(-100%);
+    transition: transform 0.6s ease;
+  }
+  .menu-btn:hover {
+    background: rgba(0, 212, 255, 0.08);
+    border-color: var(--cyan);
+    box-shadow: 0 0 22px rgba(0, 212, 255, 0.35);
+    letter-spacing: 8px;
+  }
+  .menu-btn:hover::before { transform: translateX(100%); }
+  .menu-btn.primary {
+    border-color: var(--cyan);
+    background: rgba(0, 212, 255, 0.05);
+    box-shadow: 0 0 18px rgba(0, 212, 255, 0.2);
+  }
+  .menu-btn.primary:hover {
+    background: rgba(0, 212, 255, 0.15);
+    box-shadow: 0 0 35px rgba(0, 212, 255, 0.55);
+  }
+  .menu-btn.danger {
+    border-color: var(--danger);
+    color: #ff8a80;
+  }
+  .menu-btn.danger:hover {
+    background: rgba(183, 28, 28, 0.12);
+    box-shadow: 0 0 20px rgba(183, 28, 28, 0.4);
+  }
+  .menu-footer {
+    margin-top: 36px;
+    text-align: center;
+    font-size: 11px;
+    letter-spacing: 3px;
+    color: var(--text-dim);
+    line-height: 1.8;
+  }
+  .menu-footer .score-line {
+    margin-top: 8px;
+    color: var(--cyan-dim);
+    font-family: "Courier New", monospace;
+  }
+  .menu-footer .score-line span { color: var(--cyan); }
+
+  /* ====== 章节选择浮层（继续游戏时显示） ====== */
+  .chapter-mask {
+    position: fixed; inset: 0;
+    background: rgba(0, 4, 10, 0.92);
+    backdrop-filter: blur(8px);
+    z-index: 100;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 30px;
+  }
+  .chapter-mask.show { display: flex; }
+  .chapter-box {
+    width: 90%;
+    max-width: 640px;
+    background: linear-gradient(180deg, #0c1622 0%, #070d16 100%);
+    border: 1px solid var(--cyan-dim);
+    padding: 30px 36px;
+    border-radius: 6px;
+    max-height: 86vh;
+    overflow-y: auto;
+  }
+  .chapter-box h3 {
+    font-size: 18px;
+    letter-spacing: 6px;
+    color: var(--cyan);
+    text-align: center;
+    margin-bottom: 6px;
+  }
+  .chapter-box .sub {
+    font-size: 11px;
+    color: var(--text-dim);
+    text-align: center;
+    letter-spacing: 2px;
+    margin-bottom: 22px;
+  }
+  .chapter-list { display: flex; flex-direction: column; gap: 8px; }
+  .chapter-item {
+    padding: 12px 16px;
+    background: rgba(0, 212, 255, 0.04);
+    border: 1px solid var(--border-subtle);
+    color: var(--text-primary);
+    cursor: pointer;
+    transition: all 0.25s;
+    font-size: 13px;
+    letter-spacing: 1px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .chapter-item:hover {
+    background: rgba(0, 212, 255, 0.1);
+    border-color: var(--cyan);
+    box-shadow: 0 0 12px rgba(0, 212, 255, 0.2);
+  }
+  .chapter-item .ch-idx {
+    color: var(--cyan-dim);
+    font-family: "Courier New", monospace;
+    font-size: 12px;
+    margin-right: 10px;
+  }
+  .chapter-item .ch-name { flex: 1; }
+  .chapter-item .ch-state {
+    font-size: 10px;
+    letter-spacing: 1px;
+    padding: 2px 8px;
+    border-radius: 2px;
+  }
+  .chapter-item .ch-state.visited { background: rgba(0, 212, 255, 0.15); color: var(--cyan); }
+  .chapter-item .ch-state.current  { background: var(--cyan); color: #050810; font-weight: bold; }
+  .chapter-item .ch-state.locked   { color: var(--text-dim); }
+  .chapter-close {
+    margin-top: 18px;
+    width: 100%;
+    padding: 10px;
+    background: transparent;
+    border: 1px solid var(--cyan-dim);
+    color: var(--cyan);
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 12px;
+    letter-spacing: 4px;
+  }
+  .chapter-close:hover { background: rgba(0, 212, 255, 0.1); }
+
+  /* ====== 确认重置弹窗 ====== */
+  .confirm-mask {
+    position: fixed; inset: 0;
+    background: rgba(0, 0, 0, 0.85);
+    z-index: 200;
+    display: none;
+    align-items: center;
+    justify-content: center;
+  }
+  .confirm-mask.show { display: flex; }
+  .confirm-box {
+    width: 380px;
+    background: #0c1220;
+    border: 1px solid var(--danger);
+    padding: 26px 28px;
+    text-align: center;
+  }
+  .confirm-box h4 {
+    color: #ff8a80;
+    font-size: 16px;
+    letter-spacing: 4px;
+    margin-bottom: 12px;
+  }
+  .confirm-box p {
+    color: var(--text-dim);
+    font-size: 13px;
+    line-height: 1.8;
+    margin-bottom: 22px;
+  }
+  .confirm-actions { display: flex; gap: 10px; justify-content: center; }
+  .confirm-actions button {
+    padding: 8px 24px;
+    background: transparent;
+    border: 1px solid var(--cyan-dim);
+    color: var(--cyan);
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 12px;
+    letter-spacing: 3px;
+  }
+  .confirm-actions button.danger {
+    border-color: var(--danger);
+    color: #ff8a80;
+  }
+  .confirm-actions button:hover { background: rgba(255, 255, 255, 0.05); }
+
+  /* ====== 游戏场景 iframe 全屏容器 ====== */
+  #gameFrameWrap {
+    position: fixed; inset: 0;
+    z-index: 500;
+    background: #050810;
+    display: none;
+  }
+  #gameFrameWrap.show { display: block; }
+  #gameFrame {
+    width: 100%; height: 100%;
+    border: none;
+    display: block;
+  }
+</style>
+</head>
+<body data-gs-theme="dark">
+<div class="app">
+  <div class="menu-frame">
+    <div class="brand-tag">— 悬 疑 解 谜 · 三 局 两 胜 —</div>
+    <h1 class="game-title">未命名竞赛</h1>
+    <div class="game-subtitle">第 三 局</div>
+    <p class="game-tagline">
+      "复仇女神与诗人定下赌约——三局两胜。"<br>
+      "第三局的规则由第一局胜者定。"
+    </p>
+
+    <div class="menu-buttons">
+      <button class="menu-btn primary" id="btnStart">开 始 调 查</button>
+      <button class="menu-btn" id="btnContinue">继 续 游 戏</button>
+      <button class="menu-btn" id="btnChapter">章 节 选 择</button>
+      <button class="menu-btn danger" id="btnReset">清 除 进 度</button>
+    </div>
+
+    <div class="menu-footer" id="menuFooter">
+      建议使用 Chrome / Edge 浏览器 · 全屏体验更佳
+      <div class="score-line" id="scoreLine"></div>
+    </div>
+  </div>
+</div>
+
+<!-- 章节选择 -->
+<div class="chapter-mask" id="chapterMask">
+  <div class="chapter-box">
+    <h3>章 节 选 择</h3>
+    <div class="sub">— 选择要进入的场景 —</div>
+    <div class="chapter-list" id="chapterList"></div>
+    <button class="chapter-close" id="chapterClose">返 回 主 菜 单</button>
+  </div>
+</div>
+
+<!-- 重置确认 -->
+<div class="confirm-mask" id="confirmMask">
+  <div class="confirm-box">
+    <h4>清 除 进 度</h4>
+    <p>此操作将清除所有已收集证据、各关得分与场景进度，且无法恢复。<br>确定要继续吗？</p>
+    <div class="confirm-actions">
+      <button id="confirmYes" class="danger">确 认 清 除</button>
+      <button id="confirmNo">取 消</button>
+    </div>
+  </div>
+</div>
+
+<!-- 游戏场景全屏 iframe -->
+<div id="gameFrameWrap">
+  <iframe id="gameFrame" name="gameFrame" allow="autoplay"></iframe>
+</div>
+
+<!-- 全局背景音乐：01.MP3（序幕→关卡1→剧情2 之间连续循环播放） -->
+<audio id="bgm01" src="01.MP3" preload="auto" loop></audio>
+<!-- 全局背景音乐：02.mp3（关卡2A监控→关卡2B医院→剧情3宿舍 之间连续循环播放） -->
+<audio id="bgm02" src="02.mp3" preload="auto" loop></audio>
+<!-- 全局背景音乐：03.mp3（关卡2C · 审讯赵医生 时播放） -->
+<audio id="bgm03" src="03.mp3" preload="auto" loop></audio>
+
+<script src="game-state.js"></script>
+<script>
+(() => {
+  'use strict';
+
+  const GameState = window.GameState;
+  const SCENES = GameState.SCENES;
+  const ORDER = ['prologue','level1','story2','level2-monitor','level2-hospital','story3-dorm','level2-trial','story4-legend','level3-final'];
+
+  // 01 音频播放范围：序幕 → 关卡1 → 剧情2
+  const BGM01_SCENES = new Set(['prologue', 'level1', 'story2']);
+  // 02 音频播放范围：关卡2A监控 → 关卡2B医院 → 剧情3（宿舍搜查）
+  const BGM02_SCENES = new Set(['level2-monitor', 'level2-hospital', 'story3-dorm']);
+  // 03 音频播放范围：关卡2C · 审讯赵医生
+  const BGM03_SCENES = new Set(['level2-trial']);
+
+  const bgm01 = document.getElementById('bgm01');
+  const bgm02 = document.getElementById('bgm02');
+  const bgm03 = document.getElementById('bgm03');
+  const frameWrap = document.getElementById('gameFrameWrap');
+  const frame = document.getElementById('gameFrame');
+
+  // ===== 页面加载时强制清理 iframe 状态 =====
+  // 防止浏览器会话恢复（session restore / bfcache）残留的 iframe 显示状态
+  // 把 iframe 遮罩盖在主菜单上，导致按钮无法点击。
+  // 用户必须主动点击"开始调查"或"继续游戏"才会再次打开 iframe。
+  try {
+    frameWrap.classList.remove('show');
+    frame.src = 'about:blank';
+    bgm01.pause(); bgm01.currentTime = 0;
+    bgm02.pause(); bgm02.currentTime = 0;
+    bgm03.pause(); bgm03.currentTime = 0;
+  } catch (e) {}
+
+  // ===== 首次交互解锁自动播放（浏览器策略） =====
+  let autoPlayUnlocked = false;
+  const pendingPlays = [];
+  function ensureAutoPlayUnlocked() {
+    if (autoPlayUnlocked) return;
+    const onFirst = () => {
+      autoPlayUnlocked = true;
+      // 依次尝试所有待播放的 BGM
+      while (pendingPlays.length) {
+        const fn = pendingPlays.shift();
+        try { fn(); } catch (e) {}
+      }
+      document.removeEventListener('click', onFirst);
+      document.removeEventListener('keydown', onFirst);
+    };
+    document.addEventListener('click', onFirst);
+    document.addEventListener('keydown', onFirst);
+  }
+  ensureAutoPlayUnlocked();
+
+  function tryPlayAudio(audioEl) {
+    const p = audioEl.play();
+    if (p && typeof p.then === 'function') {
+      p.catch(() => {
+        // 被浏览器阻止，排队等首次交互后再试
+        pendingPlays.push(() => audioEl.play().catch(() => {}));
+      });
+    }
+  }
+
+  // ===== 用户手势内解锁音频上下文（解决浏览器自动播放限制） =====
+  // 原理：在用户点击事件（gesture）中，对 audio 静音播放一次（play() 即可解锁），
+  // 让该 audio 标签获得自动播放权限。采用"静音播放"而非"play→pause"，
+  // 避免异步 .then() 回调与随后 openScene() → playBgm01() 的 play() 调用产生竞态，
+  // 导致 BGM 最终被错误地暂停。
+  function unlockAudio() {
+    autoPlayUnlocked = true;
+    const list = [bgm01, bgm02, bgm03];
+    list.forEach((el) => {
+      if (!el) return;
+      // 静音播放以解锁该 audio 标签，不使用 play→pause 模式
+      // 解锁后由 openScene() 的 updateBgmByScene() 决定哪一首 BGM 真正发声
+      try { el.muted = true; } catch (e) {}
+      const p = el.play();
+      if (p && typeof p.then === 'function') {
+        p.then(() => {
+          // 解锁成功后保持静音，等待 updateBgmByScene 取消静音
+        }).catch(() => {
+          // 自动播放被浏览器拦截，恢复非静音状态，等待下次用户手势
+          try { el.muted = false; } catch (e) {}
+        });
+      } else {
+        // 同步返回（旧浏览器），直接恢复静音状态
+        try { el.muted = false; } catch (e) {}
+      }
+    });
+    // 立刻执行所有 pending 的播放
+    while (pendingPlays.length) {
+      const fn = pendingPlays.shift();
+      try { fn(); } catch (e) {}
+    }
+  }
+
+  // ===== 通用：暂停所有三首 BGM =====
+  function pauseAllBgm() {
+    pauseBgm01();
+    pauseBgm02();
+    pauseBgm03();
+  }
+
+  // ===== 01.MP3 播放控制 =====
+  function playBgm01() {
+    pauseBgm02();
+    pauseBgm03();
+    // 取消静音并尝试播放；移除 if(paused) 判断以避免与 unlockAudio 的异步 .then() 产生竞态
+    try { bgm01.muted = false; } catch (e) {}
+    try { bgm01.volume = 1; } catch (e) {}
+    tryPlayAudio(bgm01);
+  }
+  function pauseBgm01() {
+    if (!bgm01.paused) bgm01.pause();
+  }
+
+  // ===== 02.mp3 播放控制 =====
+  function playBgm02() {
+    pauseBgm01();
+    pauseBgm03();
+    try { bgm02.muted = false; } catch (e) {}
+    try { bgm02.volume = 1; } catch (e) {}
+    tryPlayAudio(bgm02);
+  }
+  function pauseBgm02() {
+    if (!bgm02.paused) bgm02.pause();
+  }
+
+  // ===== 03.mp3 播放控制 =====
+  function playBgm03() {
+    pauseBgm01();
+    pauseBgm02();
+    try { bgm03.muted = false; } catch (e) {}
+    try { bgm03.volume = 1; } catch (e) {}
+    tryPlayAudio(bgm03);
+  }
+  function pauseBgm03() {
+    if (!bgm03.paused) bgm03.pause();
+  }
+
+  // 根据当前场景 id 决定播放哪一首
+  function updateBgmByScene(sceneId) {
+    if (!sceneId) { pauseAllBgm(); return; }
+    if (BGM01_SCENES.has(sceneId)) {
+      playBgm01();
+    } else if (BGM02_SCENES.has(sceneId)) {
+      playBgm02();
+    } else if (BGM03_SCENES.has(sceneId)) {
+      playBgm03();
+    } else {
+      pauseAllBgm();
+    }
+  }
+
+  // 从 localStorage 读取 GameState 的 currentScene
+  function readCurrentScene() {
+    try {
+      const raw = localStorage.getItem('unnamed_game_state_v1');
+      if (!raw) return null;
+      const st = JSON.parse(raw);
+      return st.currentScene || null;
+    } catch (e) { return null; }
+  }
+
+  // ===== iframe 入口：打开场景 =====
+  function openScene(id) {
+    const sc = SCENES[id];
+    if (!sc) return;
+    GameState.setCurrentScene(id);
+    // 计算绝对 URL
+    const target = sc.url;
+    let url;
+    if (/^https?:|^file:|^\/\//.test(target)) {
+      url = target;
+    } else {
+      // 以 index.html 所在目录为根
+      url = (location.href.replace(/[^/]*$/, '')) + target;
+    }
+    // 显示 iframe
+    frameWrap.classList.add('show');
+    frame.src = url;
+    // 按场景设置 BGM 状态
+    updateBgmByScene(id);
+  }
+
+  // 关闭 iframe → 返回主菜单
+  function closeFrame() {
+    frameWrap.classList.remove('show');
+    frame.src = 'about:blank';
+    pauseAllBgm();
+    // 返回主菜单时重新从 localStorage 加载状态，
+    // 确保 iframe 场景中收集的证据同步到父页面的证据板与分数线
+    GameState.reload();
+    renderScoreLine();
+  }
+
+  // ===== 监听 iframe 内部跳转（通过 load 事件 + 读 localStorage） =====
+  frame.addEventListener('load', () => {
+    // 从 storage 拿到 iframe 刚刚进入的场景
+    const sceneId = readCurrentScene();
+    if (sceneId === 'menu' || !sceneId) {
+      // 回到主菜单 → 关闭 iframe
+      closeFrame();
+      return;
+    }
+    // 同步 iframe 场景收集的证据到父页面（跨 JS 上下文刷新）
+    GameState.reload();
+    updateBgmByScene(sceneId);
+  });
+
+  // 同步标签页之间的状态变化时，也同步 BGM 状态（避免多个 tab 干扰）
+  window.addEventListener('storage', (e) => {
+    if (e.key === 'unnamed_game_state_v1') {
+      GameState.reload();
+      renderScoreLine();
+    }
+  });
+
+  // 注入证据板面板
+  GameState.injectEvidencePanel({ theme: 'dark' });
+
+  // 显示分数线（场景数含主菜单自身，共 10 个）
+  function renderScoreLine() {
+    const st = GameState.getAll();
+    const evCount = st.evidence.length;
+    const total = Object.keys(GameState.EVIDENCE_META).length;
+    const scoreLine = document.getElementById('scoreLine');
+    const visited = st.visited.length;
+    const sceneTotal = ORDER.length + 1; // +1 含主菜单
+    scoreLine.innerHTML = `证据 <span>${evCount}/${total}</span> · 场景 <span>${visited}/${sceneTotal}</span>`;
+  }
+  renderScoreLine();
+
+  // 开始调查：重置并进入序幕
+  document.getElementById('btnStart').addEventListener('click', () => {
+    unlockAudio();
+    GameState.reset();
+    // 从头开始播放（如果之前暂停或跳转过）
+    try { bgm01.currentTime = 0; } catch(e){}
+    try { bgm02.currentTime = 0; } catch(e){}
+    try { bgm03.currentTime = 0; } catch(e){}
+    openScene('prologue');
+  });
+
+  // 继续游戏：根据 currentScene 跳转
+  document.getElementById('btnContinue').addEventListener('click', () => {
+    unlockAudio();
+    const cur = GameState.getCurrentScene();
+    const target = (cur && cur !== 'menu') ? cur : 'prologue';
+    openScene(target);
+  });
+
+  // 章节选择
+  document.getElementById('btnChapter').addEventListener('click', () => {
+    renderChapterList();
+    document.getElementById('chapterMask').classList.add('show');
+  });
+  document.getElementById('chapterClose').addEventListener('click', () => {
+    document.getElementById('chapterMask').classList.remove('show');
+  });
+
+  function renderChapterList() {
+    const list = document.getElementById('chapterList');
+    const st = GameState.getAll();
+    list.innerHTML = '';
+    ORDER.forEach((id, i) => {
+      const sc = SCENES[id];
+      const item = document.createElement('div');
+      item.className = 'chapter-item';
+      const visited = st.visited.includes(id);
+      const isCurrent = st.currentScene === id;
+      let stateHtml;
+      if (isCurrent) stateHtml = '<span class="ch-state current">当前</span>';
+      else if (visited) stateHtml = '<span class="ch-state visited">已通关</span>';
+      else stateHtml = '<span class="ch-state locked">未解锁</span>';
+      item.innerHTML = `
+        <span class="ch-idx">${String(i+1).padStart(2,'0')}</span>
+        <span class="ch-name">${sc.name}</span>
+        ${stateHtml}
+      `;
+      item.addEventListener('click', () => {
+        unlockAudio();
+        document.getElementById('chapterMask').classList.remove('show');
+        openScene(id);
+      });
+      list.appendChild(item);
+    });
+  }
+
+  // 清除进度
+  document.getElementById('btnReset').addEventListener('click', () => {
+    document.getElementById('confirmMask').classList.add('show');
+  });
+  document.getElementById('confirmNo').addEventListener('click', () => {
+    document.getElementById('confirmMask').classList.remove('show');
+  });
+  document.getElementById('confirmYes').addEventListener('click', () => {
+    GameState.reset();
+    document.getElementById('confirmMask').classList.remove('show');
+    renderScoreLine();
+  });
+})();
+</script>
+</body>
+</html>

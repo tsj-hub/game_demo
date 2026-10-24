@@ -1,0 +1,884 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>序幕 · 警察局</title>
+<style>
+  :root {
+    --bg-deep: #050810;
+    --bg-panel: #0c1220;
+    --cyan: #00d4ff;
+    --cyan-dim: #007a94;
+    --text-primary: #d4e4f5;
+    --text-dim: #5a7a96;
+    --text-hint: #6b8399;
+    --border-subtle: rgba(0, 212, 255, 0.15);
+    --warm: #c8924a;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  html, body {
+    width: 100%; height: 100%;
+    background: var(--bg-deep);
+    color: var(--text-primary);
+    font-family: "Microsoft YaHei", "PingFang SC", sans-serif;
+    overflow: hidden;
+    user-select: none;
+  }
+  body::before {
+    content: "";
+    position: fixed; inset: 0;
+    background:
+      radial-gradient(ellipse at 50% 0%, rgba(0, 100, 140, 0.18) 0%, transparent 60%),
+      repeating-linear-gradient(0deg, transparent, transparent 3px, rgba(0,0,0,0.08) 3px, rgba(0,0,0,0.08) 4px);
+    pointer-events: none; z-index: 0;
+  }
+  /* 整页底图（序幕背景图）——覆盖在 body::before 之上、stage 之下 */
+  body::after {
+    content: "";
+    position: fixed; inset: 0;
+    background-image: url("素材/素材/序幕背景图.webp");
+    background-size: cover;
+    background-position: center;
+    opacity: 0.18;
+    filter: grayscale(35%) blur(0.5px);
+    pointer-events: none;
+    z-index: 0;
+  }
+  .stage {
+    position: relative; z-index: 1;
+    width: 100%; height: 100%;
+    display: flex; flex-direction: column;
+    padding: 20px;
+  }
+  .topbar {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 0 10px 12px;
+    border-bottom: 1px solid var(--border-subtle);
+    margin-bottom: 18px;
+  }
+  .topbar-title {
+    font-size: 15px; letter-spacing: 4px; color: var(--cyan);
+    text-shadow: 0 0 10px rgba(0, 212, 255, 0.4);
+  }
+  .topbar-sub { font-size: 11px; color: var(--text-dim); letter-spacing: 2px; margin-top: 2px; }
+  .topbar-step { font-size: 12px; color: var(--text-dim); letter-spacing: 2px; font-family: "Courier New", monospace; }
+  .topbar-step span { color: var(--cyan); }
+
+  .scene {
+    flex: 1;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    position: relative;
+    overflow: hidden;
+  }
+
+  /* ===== 场景背景（纯 CSS 绘制） ===== */
+  .bg-corridor, .bg-office, .bg-meeting {
+    position: absolute; inset: 0;
+    z-index: 0;
+    opacity: 0.5;
+    pointer-events: none;
+  }
+  /* 走廊：透视线 */
+  .bg-corridor {
+    background:
+      linear-gradient(180deg, rgba(8, 14, 24, 0.4) 0%, rgba(0, 0, 0, 0.6) 100%),
+      repeating-linear-gradient(90deg, rgba(0, 100, 140, 0.08) 0 80px, transparent 80px 160px);
+  }
+  .bg-corridor::before {
+    content: "";
+    position: absolute;
+    left: 50%; top: 50%;
+    width: 600px; height: 600px;
+    transform: translate(-50%, -50%);
+    background:
+      conic-gradient(from 0deg at 50% 50%,
+        transparent 0deg, rgba(0, 212, 255, 0.04) 10deg, transparent 20deg,
+        rgba(0, 212, 255, 0.04) 30deg, transparent 40deg,
+        rgba(0, 212, 255, 0.04) 50deg, transparent 60deg,
+        rgba(0, 212, 255, 0.04) 70deg, transparent 80deg,
+        rgba(0, 212, 255, 0.04) 90deg, transparent 100deg,
+        rgba(0, 212, 255, 0.04) 110deg, transparent 120deg,
+        rgba(0, 212, 255, 0.04) 130deg, transparent 140deg,
+        rgba(0, 212, 255, 0.04) 150deg, transparent 160deg,
+        rgba(0, 212, 255, 0.04) 170deg, transparent 180deg,
+        rgba(0, 212, 255, 0.04) 190deg, transparent 200deg,
+        rgba(0, 212, 255, 0.04) 210deg, transparent 220deg,
+        rgba(0, 212, 255, 0.04) 230deg, transparent 240deg,
+        rgba(0, 212, 255, 0.04) 250deg, transparent 260deg,
+        rgba(0, 212, 255, 0.04) 270deg, transparent 280deg,
+        rgba(0, 212, 255, 0.04) 290deg, transparent 300deg,
+        rgba(0, 212, 255, 0.04) 310deg, transparent 320deg,
+        rgba(0, 212, 255, 0.04) 330deg, transparent 340deg,
+        rgba(0, 212, 255, 0.04) 350deg, transparent 360deg);
+  }
+  /* 办公室：使用真实背景图【林深办公桌】 */
+  .bg-office {
+    background-image: url("素材/素材/林深办公桌.webp");
+    background-size: cover;
+    background-position: center;
+    opacity: 0.85;
+  }
+  .bg-office::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(180deg, rgba(8, 14, 24, 0.35) 0%, rgba(0, 0, 0, 0.55) 100%);
+  }
+  /* 会面室：单灯 */
+  .bg-meeting {
+    background:
+      radial-gradient(ellipse at 50% 35%, rgba(0, 100, 140, 0.15) 0%, transparent 55%),
+      linear-gradient(180deg, rgba(8, 14, 24, 0.6) 0%, rgba(0, 0, 0, 0.85) 100%);
+  }
+
+  /* ===== 角色立绘占位（剪影） ===== */
+  .silhouette {
+    position: absolute;
+    bottom: 25%;
+    z-index: 2;
+    width: 200px; height: 380px;
+    background:
+      radial-gradient(ellipse at 50% 12%, rgba(0, 212, 255, 0.25) 0%, rgba(0, 212, 255, 0.08) 18%, transparent 22%),
+      linear-gradient(180deg, transparent 22%, rgba(0, 30, 50, 0.55) 25%, rgba(0, 10, 20, 0.85) 100%);
+    border-radius: 50% 50% 8px 8px / 18% 18% 4px 4px;
+    filter: blur(0.5px);
+    opacity: 0.85;
+  }
+  .silhouette.left { left: 12%; }
+  .silhouette.right { right: 12%; }
+  .silhouette::after {
+    content: attr(data-name);
+    position: absolute;
+    bottom: -28px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 12px;
+    color: var(--cyan-dim);
+    letter-spacing: 4px;
+    white-space: nowrap;
+  }
+
+  /* ===== 对话框 ===== */
+  .dialogue::before, .dialogue::after {
+    content: "";
+    position: absolute;
+    width: 30px; height: 30px;
+    border: 1px solid var(--cyan);
+    opacity: 0.5;
+  }
+  .dialogue::before { top: -1px; left: -1px; border-right: none; border-bottom: none; }
+  .dialogue::after { bottom: -1px; right: -1px; border-left: none; border-top: none; }
+
+  .speaker {
+    display: inline-block;
+    font-size: 14px;
+    color: var(--cyan);
+    letter-spacing: 3px;
+    padding: 3px 14px;
+    border: 1px solid var(--cyan-dim);
+    margin-bottom: 14px;
+    background: rgba(0, 212, 255, 0.05);
+  }
+  .speaker.narration { color: var(--text-dim); border-color: var(--text-dim); }
+  .speaker.lin { color: var(--cyan); }
+  .speaker.fiance { color: var(--warm); border-color: var(--warm); }
+  .speaker.chief { color: #ff8a80; border-color: #b71c1c; }
+
+  /* ===== 对话框内的人物头像 ===== */
+  .dialogue {
+    position: relative; z-index: 5;
+    width: 100%;
+    max-width: 760px;
+    background: linear-gradient(180deg, rgba(12, 18, 32, 0.96) 0%, rgba(7, 13, 22, 0.98) 100%);
+    border: 1px solid var(--cyan-dim);
+    border-radius: 6px;
+    padding: 26px 30px 22px 110px;  /* 左侧留出头像空间 */
+    box-shadow: 0 0 40px rgba(0, 100, 140, 0.25), inset 0 0 30px rgba(0, 100, 140, 0.05);
+    min-height: 180px;
+  }
+  .dialogue .avatar {
+    position: absolute;
+    left: 18px;
+    top: 22px;
+    width: 76px; height: 76px;
+    border-radius: 50%;
+    border: 1px solid var(--cyan-dim);
+    background: #0a1018 center/cover no-repeat;
+    box-shadow: 0 0 16px rgba(0, 212, 255, 0.25);
+    overflow: hidden;
+  }
+  .dialogue .avatar img {
+    width: 100%; height: 100%; object-fit: cover; display: block;
+  }
+  .dialogue .avatar.empty {
+    background: linear-gradient(135deg, rgba(0,30,50,0.6), rgba(0,10,20,0.9));
+  }
+  .dialogue .avatar.empty::after {
+    content: "旁 白";
+    position: absolute; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px; color: var(--text-dim); letter-spacing: 2px;
+  }
+
+  /* 办公室场景：旁白框缩小并移到顶部，避免遮挡桌面物品 */
+  .dialogue.office-brief {
+    position: absolute;
+    top: 18px;
+    left: 50%;
+    transform: translateX(-50%);
+    max-width: 560px;
+    min-height: 0;
+    padding: 16px 24px 14px 100px;
+  }
+  .dialogue.office-brief .line {
+    font-size: 13px;
+    line-height: 1.7;
+    min-height: 0;
+  }
+  .dialogue.office-brief .speaker {
+    font-size: 12px;
+    margin-bottom: 8px;
+    padding: 2px 10px;
+  }
+  .dialogue.office-brief .avatar {
+    width: 60px; height: 60px;
+    top: 16px; left: 16px;
+    border-radius: 50%;
+  }
+  .dialogue.office-brief .next-hint {
+    bottom: 8px; right: 14px;
+  }
+
+  .line {
+    font-size: 16px;
+    line-height: 2;
+    color: var(--text-primary);
+    letter-spacing: 0.6px;
+    min-height: 80px;
+    font-style: italic;
+  }
+  .line.narration {
+    color: var(--text-hint);
+    font-style: normal;
+    font-size: 14px;
+    line-height: 1.9;
+    letter-spacing: 1px;
+  }
+  .line .cursor {
+    display: inline-block;
+    width: 8px; height: 16px;
+    background: var(--cyan);
+    margin-left: 2px;
+    vertical-align: text-bottom;
+    animation: blink 0.9s steps(1) infinite;
+  }
+  @keyframes blink { 50% { opacity: 0; } }
+
+  /* ===== 选项 ===== */
+  .choices {
+    margin-top: 18px;
+    display: flex; flex-direction: column;
+    gap: 8px;
+  }
+  .choice {
+    padding: 10px 16px;
+    background: rgba(0, 212, 255, 0.04);
+    border: 1px solid var(--border-subtle);
+    color: var(--text-primary);
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 13px;
+    letter-spacing: 1px;
+    transition: all 0.25s;
+    text-align: left;
+  }
+  .choice:hover {
+    background: rgba(0, 212, 255, 0.1);
+    border-color: var(--cyan);
+    color: var(--cyan);
+    box-shadow: 0 0 12px rgba(0, 212, 255, 0.2);
+  }
+  .choice .hint {
+    font-size: 11px;
+    color: var(--text-dim);
+    margin-left: 8px;
+  }
+
+  /* ===== 提示与下一步 ===== */
+  .next-hint {
+    position: absolute;
+    bottom: 12px;
+    right: 18px;
+    font-size: 11px;
+    color: var(--text-hint);
+    letter-spacing: 2px;
+    animation: hintBlink 2s ease-in-out infinite;
+  }
+  @keyframes hintBlink {
+    0%, 100% { opacity: 0.4; }
+    50% { opacity: 0.95; }
+  }
+
+  /* ===== 可点击物品高亮（办公室场景） ===== */
+  .clickable-item {
+    position: absolute;
+    z-index: 3;
+    cursor: pointer;
+    transition: all 0.3s;
+  }
+  .clickable-item .ring {
+    position: absolute;
+    inset: -8px;
+    border: 1px dashed var(--cyan-dim);
+    border-radius: 4px;
+    opacity: 0.6;
+    animation: ringPulse 2.5s ease-in-out infinite;
+  }
+  @keyframes ringPulse {
+    0%, 100% { opacity: 0.4; transform: scale(1); }
+    50% { opacity: 0.85; transform: scale(1.04); }
+  }
+  .clickable-item:hover .ring {
+    border-color: var(--cyan);
+    opacity: 1;
+    box-shadow: 0 0 16px rgba(0, 212, 255, 0.4);
+  }
+  .clickable-item.viewed .ring { display: none; }
+  .clickable-item .icon {
+    width: 80px; height: 80px;
+    background: linear-gradient(135deg, rgba(0, 30, 50, 0.85), rgba(0, 10, 20, 0.95));
+    border: 1px solid var(--cyan-dim);
+    border-radius: 4px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 30px;
+  }
+  .clickable-item .label {
+    text-align: center;
+    margin-top: 6px;
+    font-size: 11px;
+    color: var(--cyan-dim);
+    letter-spacing: 2px;
+  }
+
+  /* ===== 物品详情弹窗 ===== */
+  .item-modal {
+    position: fixed; inset: 0;
+    background: rgba(0, 4, 10, 0.9);
+    backdrop-filter: blur(6px);
+    z-index: 50;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 30px;
+  }
+  .item-modal.show { display: flex; }
+  .item-modal .box {
+    width: 90%; max-width: 540px;
+    background: linear-gradient(180deg, #0c1622 0%, #070d16 100%);
+    border: 1px solid var(--cyan-dim);
+    padding: 28px 32px 24px;
+    border-radius: 6px;
+  }
+  .item-modal .tag {
+    font-size: 11px; color: var(--cyan);
+    letter-spacing: 3px; margin-bottom: 8px;
+  }
+  .item-modal h3 {
+    font-size: 18px; color: var(--cyan);
+    margin-bottom: 18px; letter-spacing: 2px;
+  }
+  .item-modal .content {
+    font-size: 14px; line-height: 2;
+    color: var(--text-primary);
+    background: rgba(0, 0, 0, 0.3);
+    border-left: 2px solid var(--cyan-dim);
+    padding: 16px 18px;
+    margin-bottom: 22px;
+    font-family: "Courier New", monospace;
+    white-space: pre-wrap;
+  }
+  .item-modal .actions { text-align: center; }
+  .item-modal .actions button {
+    padding: 8px 28px;
+    background: transparent;
+    border: 1px solid var(--cyan-dim);
+    color: var(--cyan);
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 12px;
+    letter-spacing: 3px;
+  }
+  .item-modal .actions button:hover {
+    background: rgba(0, 212, 255, 0.1);
+  }
+
+  /* ===== 证据获得提示 ====== */
+  .evidence-toast {
+    position: fixed;
+    top: 30px;
+    left: 50%;
+    transform: translateX(-50%) translateY(-80px);
+    background: linear-gradient(180deg, #0c1622, #070d16);
+    border: 1px solid var(--cyan);
+    color: var(--cyan);
+    padding: 14px 30px;
+    font-size: 14px;
+    letter-spacing: 3px;
+    border-radius: 4px;
+    z-index: 200;
+    box-shadow: 0 0 30px rgba(0, 212, 255, 0.5);
+    opacity: 0;
+    transition: all 0.5s ease;
+  }
+  .evidence-toast.show {
+    transform: translateX(-50%) translateY(0);
+    opacity: 1;
+  }
+  .evidence-toast .icon { font-size: 18px; margin-right: 8px; }
+
+  /* ===== 过渡转场 ===== */
+  .fade {
+    position: fixed; inset: 0;
+    background: #050810;
+    z-index: 300;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.6s;
+  }
+  .fade.show { opacity: 1; pointer-events: auto; }
+
+  @media (max-width: 768px) {
+    .silhouette { width: 130px; height: 260px; }
+    .silhouette.left { left: 4%; }
+    .silhouette.right { right: 4%; }
+    .dialogue { padding: 18px 18px 16px; min-height: 140px; }
+    .line { font-size: 14px; line-height: 1.85; }
+    .game-title { font-size: 42px; letter-spacing: 12px; }
+    .clickable-item .icon { width: 60px; height: 60px; font-size: 22px; }
+  }
+</style>
+</head>
+<body data-gs-theme="dark">
+<div class="stage">
+  <div class="topbar">
+    <div>
+      <div class="topbar-title" id="topTitle">序 幕</div>
+      <div class="topbar-sub" id="topSub">警 察 局 · 黄 昏</div>
+    </div>
+    <div class="topbar-step">场 景 <span id="stepNum">1</span> / 3</div>
+  </div>
+
+  <div class="scene" id="scene">
+    <!-- 场景内容由 JS 动态填充 -->
+  </div>
+</div>
+
+<!-- 物品详情弹窗 -->
+<div class="item-modal" id="itemModal">
+  <div class="box">
+    <div class="tag" id="imTag">物 品 · 详 情</div>
+    <h3 id="imTitle"></h3>
+    <div class="content" id="imContent"></div>
+    <div class="actions">
+      <button id="imClose">收 起</button>
+    </div>
+  </div>
+</div>
+
+<!-- 证据获得提示 -->
+<div class="evidence-toast" id="evToast">
+  <span class="icon">📁</span><span id="evToastText">已获得证据</span>
+</div>
+
+<!-- 转场 -->
+<div class="fade" id="fade"></div>
+
+<!-- 点击音效：案件档案/法医邮件/各类按钮点击时播放 -->
+<audio id="clickSfx" src="点击.mp3" preload="auto"></audio>
+
+<script src="game-state.js"></script>
+<script>
+(() => {
+  'use strict';
+  const GameState = window.GameState;
+  GameState.setCurrentScene('prologue');
+  GameState.injectEvidencePanel({ theme: 'dark' });
+
+  const scene = document.getElementById('scene');
+  const topTitle = document.getElementById('topTitle');
+  const topSub = document.getElementById('topSub');
+  const stepNum = document.getElementById('stepNum');
+  const fade = document.getElementById('fade');
+  const clickSfxEl = document.getElementById('clickSfx');
+
+  // 点击音效：单次触发，不循环
+  function playClickSfx() {
+    if (!clickSfxEl) return;
+    try { clickSfxEl.currentTime = 0; } catch (e) {}
+    const p = clickSfxEl.play();
+    if (p && typeof p.then === 'function') {
+      p.catch(() => {
+        const onFirst = () => {
+          clickSfxEl.play().catch(() => {});
+          document.removeEventListener('click', onFirst);
+          document.removeEventListener('keydown', onFirst);
+        };
+        document.addEventListener('click', onFirst);
+        document.addEventListener('keydown', onFirst);
+      });
+    }
+  }
+  // 首次用户点击页面时解锁音效
+  let clickSfxUnlocked = false;
+  function unlockClickSfx() {
+    if (clickSfxUnlocked || !clickSfxEl) return;
+    clickSfxUnlocked = true;
+    const wasPaused = clickSfxEl.paused;
+    const p = clickSfxEl.play();
+    if (p && typeof p.then === 'function') {
+      p.then(() => {
+        if (wasPaused) {
+          try { clickSfxEl.pause(); } catch (e) {}
+          try { clickSfxEl.currentTime = 0; } catch (e) {}
+        }
+      }).catch(() => {});
+    }
+  }
+  document.addEventListener('click', unlockClickSfx, { once: true });
+  document.addEventListener('keydown', unlockClickSfx, { once: true });
+
+  // ===== 场景数据 =====
+  // 每个场景是一段对话序列，最后跳到下一个场景
+  const scenes = [
+    {
+      // 场景 1：警察局走廊
+      title: '序 幕',
+      sub: '警 察 局 · 黄 昏',
+      bg: 'corridor',
+      silhouettes: [],
+      script: [
+        { speaker: 'narration', text: '黄昏。市刑警大队走廊。日光从尽头的窗户斜进来，把地砖切成两半。' },
+        { speaker: 'chief', text: '林深，那个案子的家属在楼下等了一下午了。' },
+        { speaker: 'lin', text: '……受害者的未婚夫？' },
+        { speaker: 'chief', text: '对。他坚持要见承办人。说有东西要亲手交给你。' },
+        { speaker: 'chief', text: '你先把这案子接下来。现场我也让人去封了——酒店更衣室，今天下午刚报的。' },
+        { speaker: 'lin', text: '我先回办公室看下卷宗。' },
+        { speaker: 'narration', text: '走廊尽头的窗被推开一条缝，风把案卷的边角吹得卷起来。' }
+      ]
+    },
+    {
+      // 场景 2：林深办公室
+      title: '序 幕',
+      sub: '林 深 办 公 室',
+      bg: 'office',
+      silhouettes: [],
+      isOffice: true,  // 特殊：可点击物品
+      script: [
+        { speaker: 'narration', text: '林深的办公室。桌上两份卷宗，屏幕上一封未读的法医邮件。' },
+        { speaker: 'narration', text: '点击桌上发光的物品，查看案件档案与法医邮件。' }
+        // 查看完两件物品后自动进入下一场景
+      ]
+    },
+    {
+      // 场景 3：会面室
+      title: '序 幕',
+      sub: '会 面 室',
+      bg: 'meeting',
+      silhouettes: [],
+      script: [
+        { speaker: 'narration', text: '会面室的灯只开了一盏。未婚夫坐在桌子对面，眼眶发红，手里攥着一部手机。' },
+        { speaker: 'fiance', text: '……她出事那天早上还在跟我商量婚礼的座位表。' },
+        { speaker: 'fiance', text: '这是她的手机。密码是我们的结婚日子——我解不开，她也没让我解过。' },
+        { speaker: 'fiance', text: '但我看到锁屏前弹过一条草稿，是写给某个没存名字的号码的。' },
+        { speaker: 'fiance', text: '就一句话："衣柜好像被人动过。"' },
+        { speaker: 'lin', text: '……衣柜。' },
+        { speaker: 'fiance', text: '林警官，她是不是早就察觉到了什么？' },
+        { speaker: 'lin', text: '我会查清楚。这部手机我先带走。' },
+        { speaker: 'narration', text: '未婚夫把手机推过来，站起身，背影消失在走廊尽头。' },
+        { speaker: 'lin', text: '……衣柜被人动过。她在死之前，已经知道了。' },
+        { speaker: 'lin', text: '去现场。' }
+      ]
+    }
+  ];
+
+  let currentScene = 0;
+  let currentLine = 0;
+  let typingTimer = null;
+  let isTyping = false;
+
+  function showEvidenceToast(text) {
+    const toast = document.getElementById('evToast');
+    document.getElementById('evToastText').textContent = '已获得证据 · ' + text;
+    toast.classList.add('show');
+    setTimeout(() => toast.classList.remove('show'), 2400);
+  }
+
+  function clearScene() {
+    scene.innerHTML = '';
+    if (typingTimer) { clearTimeout(typingTimer); typingTimer = null; }
+    isTyping = false;
+  }
+
+  function renderScene(idx) {
+    clearScene();
+    const sc = scenes[idx];
+    topTitle.textContent = sc.title;
+    topSub.textContent = sc.sub;
+    stepNum.textContent = String(idx + 1);
+
+    // 背景
+    const bg = document.createElement('div');
+    bg.className = 'bg-' + sc.bg;
+    scene.appendChild(bg);
+
+    // 剪影
+    (sc.silhouettes || []).forEach(s => {
+      const div = document.createElement('div');
+      div.className = 'silhouette ' + s.pos;
+      div.dataset.name = s.name;
+      scene.appendChild(div);
+    });
+
+    if (sc.isOffice) {
+      renderOfficeScene(sc);
+      return;
+    }
+
+    // 对话框
+    const dlg = document.createElement('div');
+    dlg.className = 'dialogue';
+    dlg.innerHTML = `
+      <div class="avatar empty" id="avatar"></div>
+      <div class="speaker narration" id="spk">—</div>
+      <div class="line" id="line"></div>
+      <div class="next-hint">点 击 继 续 ▸</div>
+    `;
+    scene.appendChild(dlg);
+
+    currentLine = 0;
+    showDialogue(sc.script[0]);
+
+    dlg.addEventListener('click', () => {
+      if (isTyping) {
+        // 跳过打字机
+        if (typingTimer) { clearTimeout(typingTimer); typingTimer = null; }
+        isTyping = false;
+        document.getElementById('line').textContent = sc.script[currentLine].text;
+        return;
+      }
+      currentLine++;
+      if (currentLine >= sc.script.length) {
+        nextScene();
+      } else {
+        showDialogue(sc.script[currentLine]);
+      }
+    });
+  }
+
+  // 说话人 → 头像图（位于 素材/素材/ 目录）
+  const AVATARS = {
+    lin:    '素材/素材/林深（1）.webp',
+    chief:  '素材/素材/上级（1）.webp',
+    fiance: '素材/素材/未婚夫.jpg',
+    narration: null  // 旁白用空头像
+  };
+
+  function showDialogue(line) {
+    const spk = document.getElementById('spk');
+    const lineEl = document.getElementById('line');
+    const avEl = document.getElementById('avatar');
+    spk.className = 'speaker ' + line.speaker;
+    const names = {
+      narration: '旁 白',
+      lin: '林 深',
+      chief: '上 级',
+      fiance: '未 婚 夫'
+    };
+    spk.textContent = names[line.speaker] || line.speaker;
+    lineEl.className = 'line' + (line.speaker === 'narration' ? ' narration' : '');
+    lineEl.textContent = '';
+
+    // 设置头像
+    if (avEl) {
+      const src = AVATARS[line.speaker];
+      if (src) {
+        avEl.className = 'avatar';
+        avEl.innerHTML = `<img src="${src}" alt="${names[line.speaker] || ''}">`;
+      } else {
+        avEl.className = 'avatar empty';
+        avEl.innerHTML = '';
+      }
+    }
+
+    typewriter(lineEl, line.text);
+  }
+
+  function typewriter(el, text) {
+    isTyping = true;
+    let i = 0;
+    el.innerHTML = '<span class="cursor"></span>';
+    function step() {
+      if (i < text.length) {
+        el.innerHTML = text.substring(0, i + 1) + '<span class="cursor"></span>';
+        i++;
+        typingTimer = setTimeout(step, 35);
+      } else {
+        el.innerHTML = text;
+        isTyping = false;
+      }
+    }
+    step();
+  }
+
+  // ===== 办公室场景：可点击物品 =====
+  function renderOfficeScene(sc) {
+    // 旁白框放到顶部居中，避开桌面上的档案/邮件
+    const dlg = document.createElement('div');
+    dlg.className = 'dialogue office-brief';
+    dlg.innerHTML = `
+      <div class="avatar empty"></div>
+      <div class="speaker narration">旁 白</div>
+      <div class="line narration">${sc.script[0].text}</div>
+      <div class="line narration" style="margin-top:8px;font-size:12px;color:#5a7a96;">${sc.script[1].text}</div>
+      <div class="next-hint" id="officeHint" style="display:none;">点 击 进 入 会 面 室 ▸</div>
+    `;
+    scene.appendChild(dlg);
+
+    // 可点击物品 1：案件档案 —— 桌面左下方区域
+    const item1 = document.createElement('div');
+    item1.className = 'clickable-item';
+    item1.style.left = '24%';
+    item1.style.top = '52%';
+    item1.dataset.id = 'case-file';
+    item1.innerHTML = `
+      <div class="ring"></div>
+      <div class="icon">📂</div>
+      <div class="label">案 件 档 案</div>
+    `;
+    item1.addEventListener('click', () => { playClickSfx(); showItem('case-file'); });
+    scene.appendChild(item1);
+
+    // 可点击物品 2：法医邮件 —— 桌面右下方区域（屏幕/键盘附近）
+    const item2 = document.createElement('div');
+    item2.className = 'clickable-item';
+    item2.style.right = '24%';
+    item2.style.top = '54%';
+    item2.dataset.id = 'forensic-mail';
+    item2.innerHTML = `
+      <div class="ring"></div>
+      <div class="icon">📧</div>
+      <div class="label">法 医 邮 件</div>
+    `;
+    item2.addEventListener('click', () => { playClickSfx(); showItem('forensic-mail'); });
+    scene.appendChild(item2);
+
+    // 检查是否两个都看完了
+    checkOfficeProgress();
+  }
+
+  const ITEM_CONTENT = {
+    'case-file': {
+      tag: '档 案 · 案 件 摘 要',
+      title: '案件档案 · 林小姐被害案',
+      content: `案件编号：04-03-001
+报案时间：当日 19:42
+案发地点：某酒店更衣室
+死者：林某，女，28岁
+死因：头部钝器伤，颅骨骨折
+
+现场初步勘查：
+- 衣柜内有藏匿痕迹
+- 窗户锁扣被撬
+- 地上发现金属碎片（疑似凶器残片）
+- 死者手机不在现场
+
+备注：死者原定下周举行婚礼。`
+    },
+    'forensic-mail': {
+      tag: '邮 件 · 法 医 初 报',
+      title: '法医初步报告 · 紧急',
+      content: `发件人：法医 张
+收件人：林深
+时间：当日 21:08
+
+林队：
+
+死者头部伤口为多处钝击伤，
+凶器应为带尖端的金属工具，
+初步判断为——羊角锤一类。
+
+伤口形态、力度均显示凶手为成年男性，
+且有一定体力。
+
+死亡时间约在 18:15 前后，
+与酒店工作人员发现遗体的 19:40 之间，
+凶手有约 1.5 小时的处置时间。
+
+——张`
+    }
+  };
+
+  let viewedItems = new Set();
+
+  function showItem(id) {
+    const data = ITEM_CONTENT[id];
+    if (!data) return;
+    document.getElementById('imTag').textContent = data.tag;
+    document.getElementById('imTitle').textContent = data.title;
+    document.getElementById('imContent').textContent = data.content;
+    document.getElementById('itemModal').classList.add('show');
+
+    if (!viewedItems.has(id)) {
+      viewedItems.add(id);
+      document.querySelector(`.clickable-item[data-id="${id}"]`).classList.add('viewed');
+      checkOfficeProgress();
+    }
+  }
+  document.getElementById('imClose').addEventListener('click', () => {
+    document.getElementById('itemModal').classList.remove('show');
+  });
+  document.getElementById('itemModal').addEventListener('click', (e) => {
+    if (e.target.id === 'itemModal') {
+      document.getElementById('itemModal').classList.remove('show');
+    }
+  });
+
+  function checkOfficeProgress() {
+    if (viewedItems.size >= 2) {
+      const hint = document.getElementById('officeHint');
+      if (hint) {
+        hint.style.display = 'block';
+        hint.parentElement.addEventListener('click', () => {
+          if (!isTyping) nextScene();
+        });
+      }
+    }
+  }
+
+  function nextScene() {
+    fade.classList.add('show');
+    setTimeout(() => {
+      currentScene++;
+      if (currentScene >= scenes.length) {
+        // 序幕结束，获得证据，进入关卡1
+        GameState.addEvidence('phone');
+        showEvidenceToast('新娘的手机');
+        setTimeout(() => GameState.next(), 1500);
+      } else {
+        renderScene(currentScene);
+        fade.classList.remove('show');
+      }
+    }, 600);
+  }
+
+  // 开始
+  renderScene(0);
+
+  // 防止图片默认拖拽
+  document.addEventListener('dragstart', (e) => e.preventDefault());
+})();
+</script>
+</body>
+</html>

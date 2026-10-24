@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>热区标定工具 · 监控里的黑影</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: #0a0a0c;
+    color: #d8c9a3;
+    font-family: "PingFang SC", "Microsoft YaHei", sans-serif;
+    padding: 24px;
+    min-height: 100vh;
+  }
+  h1 {
+    font-size: 18px;
+    color: #c8924a;
+    letter-spacing: 0.1em;
+    margin-bottom: 8px;
+  }
+  .hint {
+    font-size: 14px;
+    color: #8a7e62;
+    margin-bottom: 16px;
+    line-height: 1.7;
+  }
+  .hint .current {
+    color: #c8924a;
+    font-weight: bold;
+    font-size: 16px;
+  }
+  .stage {
+    position: relative;
+    max-width: 1100px;
+    border: 1px solid #2a2620;
+    cursor: crosshair;
+    line-height: 0;
+  }
+  .stage img {
+    width: 100%;
+    display: block;
+  }
+  .marker {
+    position: absolute;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    border: 2px solid #c8924a;
+    background: rgba(200,146,74,0.3);
+    transform: translate(-50%, -50%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    font-weight: bold;
+    font-size: 14px;
+    text-shadow: 0 0 4px #000;
+    pointer-events: none;
+  }
+  .output {
+    margin-top: 20px;
+    background: #14130f;
+    border: 1px solid #2a2620;
+    padding: 16px;
+    font-family: "Consolas", "Courier New", monospace;
+    font-size: 13px;
+    color: #d8c9a3;
+    white-space: pre-wrap;
+    display: none;
+  }
+  .output.show { display: block; }
+  .btns { margin-top: 16px; display: flex; gap: 12px; }
+  button {
+    background: transparent;
+    border: 1px solid #c8924a;
+    color: #c8924a;
+    padding: 8px 20px;
+    font-size: 13px;
+    cursor: pointer;
+    letter-spacing: 0.1em;
+  }
+  button:hover { background: #c8924a; color: #1a1814; }
+  .copy-btn { border-color: #d8c9a3; color: #d8c9a3; }
+  .copy-btn:hover { background: #d8c9a3; color: #1a1814; }
+  .coords-list {
+    margin-top: 12px;
+    font-size: 13px;
+    color: #8a7e62;
+  }
+  .coords-list span { color: #d8c9a3; }
+</style>
+</head>
+<body>
+
+<h1>热区标定工具</h1>
+<div class="hint" id="hint">
+  请依次在图中点击 <span class="current" id="current">① 护士服肩部</span><br>
+  顺序：① 肩部 → ② 托盘 → ③ 脚步 → ④ 推车把手 → ⑤ 帽沿
+</div>
+
+<div class="stage" id="stage">
+  <img src="assets/corridor.jpg" id="img" alt="监控画面" />
+</div>
+
+<div class="coords-list" id="coordsList"></div>
+
+<div class="output" id="output"></div>
+
+<div class="btns">
+  <button onclick="reset()">重新标定</button>
+  <button class="copy-btn" id="copyBtn" onclick="copyOutput()" style="display:none;">复制坐标</button>
+</div>
+
+<script>
+  const labels = [
+    { id: 'shoulder',  name: '护士服肩部',  num: '①' },
+    { id: 'tray',      name: '托盘',       num: '②' },
+    { id: 'footprint', name: '脚步',       num: '③' },
+    { id: 'handle',    name: '推车把手',    num: '④' },
+    { id: 'cap',       name: '护士帽边缘',  num: '⑤' }
+  ];
+
+  let idx = 0;
+  const points = [];
+  const stage = document.getElementById('stage');
+  const img = document.getElementById('img');
+  const hint = document.getElementById('hint');
+  const currentEl = document.getElementById('current');
+  const output = document.getElementById('output');
+  const coordsList = document.getElementById('coordsList');
+  const copyBtn = document.getElementById('copyBtn');
+
+  stage.addEventListener('click', function(e) {
+    if (idx >= labels.length) return;
+    const rect = img.getBoundingClientRect();
+    const x = (e.clientX - rect.left) / rect.width  * 100;
+    const y = (e.clientY - rect.top)  / rect.height * 100;
+
+    // 标记圆
+    const m = document.createElement('div');
+    m.className = 'marker';
+    m.style.left = x + '%';
+    m.style.top  = y + '%';
+    m.textContent = idx + 1;
+    stage.appendChild(m);
+
+    points.push({ id: labels[idx].id, name: labels[idx].name, x: x.toFixed(2), y: y.toFixed(2) });
+    idx++;
+
+    updateCoordsList();
+
+    if (idx < labels.length) {
+      currentEl.textContent = labels[idx].num + ' ' + labels[idx].name;
+    } else {
+      hint.innerHTML = '<span class="current">✓ 全部标定完成</span> — 复制下方坐标发给 WorkBuddy';
+      generateOutput();
+      copyBtn.style.display = 'inline-block';
+    }
+  });
+
+  function updateCoordsList() {
+    coordsList.innerHTML = points.map((p, i) =>
+      `${i+1}. ${p.name} → <span>top: ${p.y}%, left: ${p.x}%</span>`
+    ).join('<br>');
+  }
+
+  function generateOutput() {
+    // 推荐热区尺寸：肩部稍大，帽沿较小
+    const sizes = {
+      shoulder:  { w: 12, h: 10 },
+      tray:      { w: 12, h: 10 },
+      footprint: { w: 16, h: 10 },
+      handle:    { w: 10, h: 10 },
+      cap:       { w: 8,  h: 9  }
+    };
+    let txt = '=== 热区坐标（百分比定位）===\n';
+    points.forEach(p => {
+      const s = sizes[p.id];
+      const cx = parseFloat(p.x);
+      const cy = parseFloat(p.y);
+      const left = (cx - s.w/2).toFixed(2);
+      const top  = (cy - s.h/2).toFixed(2);
+      txt += `${p.id} (${p.name}): top: ${top}%, left: ${left}%, width: ${s.w}%, height: ${s.h}%\n`;
+    });
+    output.textContent = txt;
+    output.classList.add('show');
+  }
+
+  function reset() {
+    idx = 0;
+    points.length = 0;
+    document.querySelectorAll('.marker').forEach(m => m.remove());
+    currentEl.textContent = labels[0].num + ' ' + labels[0].name;
+    output.classList.remove('show');
+    output.textContent = '';
+    coordsList.innerHTML = '';
+    copyBtn.style.display = 'none';
+  }
+
+  function copyOutput() {
+    navigator.clipboard.writeText(output.textContent).then(() => {
+      copyBtn.textContent = '已复制 ✓';
+      setTimeout(() => copyBtn.textContent = '复制坐标', 2000);
+    });
+  }
+</script>
+</body>
+</html>
